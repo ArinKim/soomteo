@@ -111,8 +111,6 @@
 * **공공 API 연계** — 센터 정보 제공
 * **AI 백엔드 (확장 예정)** — 감정 분석·위기 탐지
 
-## 🔧 기술 스택
-
 <div align="left">
 
 <img src="https://img.shields.io/badge/vuejs-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white">
