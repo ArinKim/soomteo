@@ -249,7 +249,7 @@ Expo Go 또는 iOS/Android 시뮬레이터에서 실행 가능
 	<tbody>
 		<tr>
 			<td align="center"><a href="https://github.com/ArinKim"><img src="https://github.com/ArinKim.png" height="150" width="150"> <br> @ArinKim</a></td>
-			<td align="center"><a href="https://github.com/bsson0502"><img src="https://github.com/bsson0502.png" height="150" width="150"> <br> @bsson0502</a></td>
+			<td align="center"><a href="https://github.com/bottle-siu"><img src="https://github.com/bottle-siu.png" height="150" width="150"> <br> @bottle-siu</a></td>
 			<td align="center"><a href="https://github.com/sseooh"><img src="https://github.com/sseooh.png" height="150" width="150"> <br> @sseooh</a></td>
 			<td align="center"><a href="https://github.com/Y-eseong"><img src="https://github.com/Y-eseong.png" height="150" width="150"> <br> @Y-eseong</a></td>
 			<td align="center"><a href="https://github.com/dbehdgns1215"><img src="https://github.com/dbehdgns1215.png" height="150" width="150"> <br> @dbehdgns1215</a></td>
