@@ -1,8 +1,9 @@
 # 🌿 **숨터 (soom_teo)**
 ### **AI 기반 정서·심리 케어 플랫폼** - **팀 유성구 해바라기반**
 
-<img width="918" height="513" alt="image" src="https://github.com/user-attachments/assets/7406ff06-eebb-4946-a2c2-eb24915a7892" />
-
+<p align="center">
+	<img width="918" height="513" alt="image" src="captures/headline.png" />
+</p>
 ---
 
 ## 📌 **서비스 개요 (소개)**
@@ -28,7 +29,10 @@
 
 # ✨ **로고**
 
-로고 이미지
+<p align="center">
+  <img width="400" alt="logo" src="captures/logo.png" />
+</p>
+
 
 ---
 
@@ -92,6 +96,45 @@
 **2단계**: 자해·자살 관련 위험 발화 → 전문 상담 연계 제안
 **3단계**: 고위험 발화 → 센터(1393), 지자체 정신건강센터 연계 + 보호자 연락(옵션)
 
+## 📱 **UI**
+
+#### 
+<p align="center">
+  <img src="captures/figma/Group 1.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 2.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 3.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 4.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 5.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 6.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 7.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 8.png" />
+</p>
+
+<p align="center">
+  <img src="captures/figma/Group 9.png" />
+</p>
+
 ---
 
 # 3️⃣ **적용 기술**
@@ -112,24 +155,22 @@
 * **AI 백엔드 (확장 예정)** — 감정 분석·위기 탐지
 
 <div align="left">
-
-<img src="https://img.shields.io/badge/vuejs-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white">
-<img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=white">
-<img src="https://img.shields.io/badge/spring-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
-<img src="https://img.shields.io/badge/springboot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
-<img src="https://img.shields.io/badge/nodejs-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white">
-<img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
-<img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
-
+	<img src="https://img.shields.io/badge/vuejs-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white">
+	<img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=white">
+	<img src="https://img.shields.io/badge/spring-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
+	<img src="https://img.shields.io/badge/springboot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
+	<img src="https://img.shields.io/badge/nodejs-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white">
+	<img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
+	<img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
 </div>
 
 
 ---
 
 # 4️⃣ **서비스 시나리오**
-
-
-
+<p align="center">
+  <img width="500" alt="logo" src="captures/diagram/userflow.png" />
+</p>
 ---
 
 # 5️⃣ **기대 효과**
@@ -155,7 +196,7 @@
 이 앱은 **Expo 기반 React Native** 샘플 앱으로,
 랜딩 → 로그인 → 연락처 목록 화면으로 구성되어 있습니다.
 
-### 📱 기능 요약
+### 📝 기능 요약
 
 * 카카오 스타일 / iOS 기본 테마 선택
 * 테스트 계정 로그인 지원 (ID: 0000 / PW: 0000)
