@@ -2,14 +2,27 @@ import React from "react";
 import { FlatList, TouchableOpacity, View, Text } from "react-native";
 import { styles } from "./styles";
 
-export default function FriendsListView({ friends, userProfile, openProfile, openSelfEditor }) {
+export default function FriendsListView({
+  friends,
+  userProfile,
+  openProfile,
+  openSelfEditor,
+}) {
   return (
     <FlatList
       data={friends}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
-      <TouchableOpacity style={[styles.friendRow, styles.userRow]} onPress={openSelfEditor}>
-          <View style={[styles.avatar, { backgroundColor: userProfile.avatarColor }]}>
+        <TouchableOpacity
+          style={[styles.friendRow, styles.userRow]}
+          onPress={openSelfEditor}
+        >
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: userProfile.avatarColor },
+            ]}
+          >
             <Text style={styles.avatarText}>{userProfile.name.charAt(0)}</Text>
           </View>
           <View style={styles.friendInfo}>
@@ -20,14 +33,21 @@ export default function FriendsListView({ friends, userProfile, openProfile, ope
         </TouchableOpacity>
       )}
       renderItem={({ item }) => (
-        <TouchableOpacity style={styles.friendRow} onPress={() => openProfile(item)}>
-          <View style={[styles.avatar, { backgroundColor: item.avatarColor || "#ddd" }]}>
+        <TouchableOpacity
+          style={styles.friendRow}
+          onPress={() => openProfile(item)}
+        >
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: item.avatarColor || "#ddd" },
+            ]}
+          >
             <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
           </View>
           <View style={styles.friendInfo}>
             <Text style={styles.friendName}>{item.name}</Text>
             <Text style={styles.friendSubtitle}>{item.status}</Text>
-            <Text style={styles.profileTag}>{item.personality || "AI 친구"}</Text>
           </View>
         </TouchableOpacity>
       )}

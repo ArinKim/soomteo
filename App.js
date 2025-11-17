@@ -88,6 +88,7 @@ export default function App() {
   );
   const [editingFriendId, setEditingFriendId] = useState(null);
   const [personalityDropdownOpen, setPersonalityDropdownOpen] = useState(false);
+  const [friendFormTitle, setFriendFormTitle] = useState("친구 추가");
 
   const [userProfile, setUserProfile] = useState({
     name: "테스트 유저",
@@ -174,7 +175,7 @@ export default function App() {
       setTimeout(() => {
         setChats((prev) => {
           const updated = { ...(prev || {}) };
-          const reply = `${friend.name}: ${friend.status}`;
+          const reply = friend.status;
           updated[friendId] = [
             ...(updated[friendId] || []),
             { from: "friend", text: reply, ts: Date.now() },
@@ -194,7 +195,7 @@ export default function App() {
     setPersonalityDropdownOpen(false);
   }
 
-  function openFriendForm(friend = null) {
+  function openFriendForm(friend = null, title = "친구 추가") {
     if (friend) {
       setEditingFriendId(friend.id);
       setNewFriendName(friend.name);
@@ -204,6 +205,7 @@ export default function App() {
     } else {
       resetFriendForm();
     }
+    setFriendFormTitle(title);
     setFriendFormVisible(true);
   }
 
@@ -386,14 +388,14 @@ export default function App() {
         onClose={() => setFriendManagementVisible(false)}
         onEditFriend={(friend) => {
           setFriendManagementVisible(false);
-          openFriendForm(friend);
+          openFriendForm(friend, "친구 정보 수정");
         }}
         deleteFriend={(id) => {
           handleDeleteFriendFromForm(id);
         }}
         onAddFriend={() => {
           setFriendManagementVisible(false);
-          openFriendForm();
+          openFriendForm(null, "친구 추가");
         }}
         setPersonalityDropdownOpen={setPersonalityDropdownOpen}
       />
@@ -423,6 +425,7 @@ export default function App() {
           setFriendFormVisible(false);
           resetFriendForm();
         }}
+        headerTitle={friendFormTitle}
       />
 
       <ProfileEditModal

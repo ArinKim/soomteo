@@ -44,9 +44,6 @@ export default function FriendManagementModal({
               <View>
                 <Text style={styles.friendName}>{friend.name}</Text>
                 <Text style={styles.friendSubtitle}>{friend.status}</Text>
-                <Text style={styles.profileTag}>
-                  {friend.personality || "AI 친구"}
-                </Text>
               </View>
               <View style={styles.managementActionGroup}>
                 <TouchableOpacity

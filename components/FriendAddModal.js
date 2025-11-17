@@ -28,6 +28,7 @@ export default function FriendAddModal({
   setPersonalityDropdownOpen,
   editingFriendId,
   onDeleteFriend,
+  headerTitle = "친구 추가",
 }) {
   return (
     <Modal
@@ -40,7 +41,7 @@ export default function FriendAddModal({
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.managementHeader}>
-          <Text style={styles.modalTitle}>친구 추가</Text>
+          <Text style={styles.modalTitle}>{headerTitle}</Text>
           <TouchableOpacity
             onPress={() => {
               onClose();
