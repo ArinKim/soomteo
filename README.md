@@ -109,39 +109,31 @@
 
 #### 
 <p align="center">
-  <img src="captures/figma/Group 1.png" />
+  <img src="captures/figma/white_bg/Group_1.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 2.png" />
+  <img src="captures/figma/white_bg/Group_2.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 3.png" />
+  <img src="captures/figma/white_bg/Group_3.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 4.png" />
+  <img src="captures/figma/white_bg/Group_4.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 5.png" />
+  <img src="captures/figma/white_bg/Group_5.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 6.png" />
+  <img src="captures/figma/white_bg/Group_6.png" />
 </p>
 
 <p align="center">
-  <img src="captures/figma/Group 7.png" />
-</p>
-
-<p align="center">
-  <img src="captures/figma/Group 8.png" />
-</p>
-
-<p align="center">
-  <img src="captures/figma/Group 9.png" />
+  <img src="captures/figma/white_bg/Group_7.png" />
 </p>
 
 ---
