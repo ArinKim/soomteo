@@ -31,7 +31,7 @@
 # ✨ **로고**
 
 <p align="center">
-  <img width="300" alt="logo" src="captures/logo.png" style="margin-top:-100px;/>
+  <img width="300" alt="logo" src="captures/logo.png" style="margin-top:-100px;"/>
 </p>
 
 <p align="center" style="margin-top:-100px; padding:0 10px 0 0;">
