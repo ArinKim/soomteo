@@ -34,11 +34,11 @@
   <img width="300" alt="logo" src="captures/logo.png" style="margin-top:-100px;"/>
 </p>
 
-<p align="center" style="margin-top:-100px; padding:0 10px 0 0;">
+<p align="center" style="margin-top:-200px; padding:0 10px 0 0;">
   <strong>모두가 행복한 대한민국을 만드는 유성구 해바라기 반</strong>
 </p>
 
-
+</br>
 
 # 🧠 **서비스 핵심 내용**
 
