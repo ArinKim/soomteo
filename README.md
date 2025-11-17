@@ -35,7 +35,7 @@
 </p>
 
 <p align="center" style="margin-top:-100px; padding:0 10px 0 0;">
-  모두가 행복한 대한민국을 만드는 유성구 해바라기 반
+  <strong>모두가 행복한 대한민국을 만드는 유성구 해바라기 반</strong>
 </p>
 
 
