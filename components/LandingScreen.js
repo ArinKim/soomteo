@@ -5,6 +5,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { styles } from "./styles";
 
@@ -18,14 +19,11 @@ export default function LandingScreen({ theme, onLoginPress }) {
     >
       <StatusBar barStyle="dark-content" />
       <View style={styles.center}>
-        <Text
-          style={[
-            styles.title,
-            theme === "kakao" ? styles.kakaoTitle : styles.iosTitle,
-          ]}
-        >
-          soomteo
-        </Text>
+        <Image
+          source={require("../assets/soomteo-logo.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <TouchableOpacity onPress={onLoginPress} style={styles.primaryBtn}>
           <Text style={styles.primaryBtnText}>로그인</Text>
         </TouchableOpacity>

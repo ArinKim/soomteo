@@ -9,6 +9,11 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+  logoImage: {
+    width: 220,
+    height: 120,
+    marginBottom: 20,
+  },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8 },
   subtitle: { fontSize: 14, color: "#444", marginBottom: 16 },
   themeNotice: { fontSize: 14, color: "#333", marginBottom: 4 },
