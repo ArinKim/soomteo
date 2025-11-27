@@ -1,0 +1,56 @@
+# 개발용 Dockerfile
+version: '3.9'
+services:
+  mysql:
+    image: mysql:8.1
+    container_name: dev-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: soomter
+      MYSQL_DATABASE: soomter
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  spring:
+    build:
+      context: ./backend/spring
+      dockerfile: Dockerfile.dev
+    container_name: dev-spring
+    working_dir: /app
+    volumes:
+      - ./backend/spring:/app
+      - ~/.gradle:/home/gradle/.gradle
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/soomter
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: soomter
+    depends_on:
+      - mysql
+
+  node:
+    build:
+      context: ./backend/node
+      dockerfile: Dockerfile.dev
+    container_name: dev-node
+    working_dir: /app
+    volumes:
+      - ./backend/node:/app
+      - node_modules:/app/node_modules
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql
+      - spring
+
+volumes:
+  mysql-data:
+  node_modules:
