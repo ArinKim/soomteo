@@ -1,25 +1,27 @@
 import React from "react";
-import { Modal, SafeAreaView, View, Text, TouchableOpacity, TextInput, ScrollView } from "react-native";
+import {
+  Modal,
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { styles } from "./styles";
 
 export default function ProfileModalView({
   visible,
   selectedFriend,
   closeProfile,
-  editingName,
-  editingStatus,
-  setEditingName,
-  setEditingStatus,
-  editingAvatarColor,
-  setEditingAvatarColor,
   handleCall,
   handleStartChat,
-  saveProfile,
-  deleteFriend,
 }) {
   if (!selectedFriend) return null;
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={closeProfile}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={closeProfile}
+    >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>프로필</Text>
@@ -29,8 +31,15 @@ export default function ProfileModalView({
         </View>
         <View style={{ padding: 20 }}>
           <View style={{ alignItems: "center", marginBottom: 20 }}>
-            <View style={[styles.avatarLarge, { backgroundColor: selectedFriend.avatarColor || "#ddd" }]}>
-              <Text style={{ fontSize: 28, fontWeight: "700" }}>{selectedFriend.name.charAt(0)}</Text>
+            <View
+              style={[
+                styles.avatarLarge,
+                { backgroundColor: selectedFriend.avatarColor || "#ddd" },
+              ]}
+            >
+              <Text style={{ fontSize: 28, fontWeight: "700" }}>
+                {selectedFriend.name.charAt(0)}
+              </Text>
             </View>
           </View>
           <Text style={{ fontWeight: "700" }}>이름</Text>
@@ -44,10 +53,18 @@ export default function ProfileModalView({
               marginTop: 12,
             }}
           >
-            <TouchableOpacity onPress={() => handleCall(selectedFriend)} style={[styles.callBtn, { flex: 1, marginRight: 8 }]}>
-              <Text style={{ color: "#fff", textAlign: "center" }}>전화하기</Text>
+            <TouchableOpacity
+              onPress={() => handleCall(selectedFriend)}
+              style={[styles.callBtn, { flex: 1, marginRight: 8 }]}
+            >
+              <Text style={{ color: "#fff", textAlign: "center" }}>
+                전화하기
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleStartChat(selectedFriend)} style={[styles.chatBtn, { flex: 1, marginLeft: 8 }]}>
+            <TouchableOpacity
+              onPress={() => handleStartChat(selectedFriend)}
+              style={[styles.chatBtn, { flex: 1, marginLeft: 8 }]}
+            >
               <Text style={{ textAlign: "center" }}>채팅 시작</Text>
             </TouchableOpacity>
           </View>

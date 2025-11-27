@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "soomteo-app",
+    "slug": "soomteo-app",
+    "version": "0.1.0",
+    "sdkVersion": "48.0.0",
+    "ios": {
+      "deploymentTarget": "14.0"
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "plugins": [
+      "expo-speech-recognition"
+    ],
+    "android": {
+      "package": "com.anonymous.soomteoapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "ios": {
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
+      },
+      "bundleIdentifier": "com.anonymous.soomteoapp"
+    }
+  }
+}
