@@ -1,9 +1,12 @@
 FROM node:18-alpine
-
 WORKDIR /app
 
-# node_modules는 컨테이너 전용 볼륨
-VOLUME /app/node_modules
+# 패키지 설치
+COPY package*.json ./
+RUN npm install
 
-# 개발 서버 명령
-CMD ["sh", "-c", "npm install && npm run dev"]
+# 소스 전체 복사
+COPY . .
+
+EXPOSE 8081
+CMD ["node", "server.js"]
