@@ -2,6 +2,7 @@
   "images" : [
     {
       "idiom" : "iphone",
+<<<<<<< HEAD
       "scale" : "2x",
       "size" : "20x20"
     },
@@ -51,3 +52,39 @@
     "version" : 1
   }
 }
+=======
+      "size" : "29x29",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "iphone",
+      "size" : "29x29",
+      "scale" : "3x"
+    },
+    {
+      "idiom" : "iphone",
+      "size" : "40x40",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "iphone",
+      "size" : "40x40",
+      "scale" : "3x"
+    },
+    {
+      "idiom" : "iphone",
+      "size" : "60x60",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "iphone",
+      "size" : "60x60",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "version" : 1,
+    "author" : "expo"
+  }
+}
+>>>>>>> 238b7f8 (Fix: update app version and setting)
