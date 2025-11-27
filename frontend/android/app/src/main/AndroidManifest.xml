@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.anonymous.soomteoapp">
   <uses-permission android:name="android.permission.INTERNET"/>
+<<<<<<< HEAD
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+=======
+>>>>>>> 238b7f8 (Fix: update app version and setting)
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>

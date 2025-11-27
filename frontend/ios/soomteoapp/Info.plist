@@ -47,9 +47,15 @@
       </dict>
     </dict>
     <key>NSMicrophoneUsageDescription</key>
+<<<<<<< HEAD
     <string>이 앱은 음성 인식을 위해 마이크 접근 권한이 필요합니다.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>이 앱은 음성 인식 기능을 사용하기 위해 음성 인식 권한이 필요합니다.</string>
+=======
+    <string>Allow $(PRODUCT_NAME) to use the microphone.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to use speech recognition.</string>
+>>>>>>> 238b7f8 (Fix: update app version and setting)
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
