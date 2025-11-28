@@ -16,6 +16,7 @@ import FriendManagementModal from "./components/FriendManagementModal";
 import FriendAddModal from "./components/FriendAddModal";
 import ProfileEditModal from "./components/ProfileEditModal";
 import ChatListView from "./components/ChatListView";
+import CallingScreen from "./components/CallingScreen";
 import { styles } from "./components/styles";
 import { PERSONALITY_OPTIONS, AVATAR_COLORS } from "./components/constants";
 
@@ -73,6 +74,7 @@ export default function App() {
 
   const [friends, setFriends] = useState(INITIAL_FRIENDS);
   const [selectedFriend, setSelectedFriend] = useState(null);
+  const [callingFriend, setCallingFriend] = useState(null);
   const [chats, setChats] = useState(INITIAL_CHATS);
   const [activeChatFriend, setActiveChatFriend] = useState(null);
   const [chatInput, setChatInput] = useState("");
@@ -128,7 +130,12 @@ export default function App() {
   }
 
   function handleCall(friend) {
-    alert(`${friend.name}에게 전화 거는 중... (시뮬레이션)`);
+    setCallingFriend(friend);
+    setSelectedFriend(null);
+  }
+
+  function handleEndCall() {
+    setCallingFriend(null);
   }
 
   function ensureChatThread(friend) {
@@ -296,6 +303,11 @@ export default function App() {
         onBack={() => setScreen("landing")}
       />
     );
+  }
+
+  // 통화 화면 렌더링
+  if (callingFriend) {
+    return <CallingScreen friend={callingFriend} onEndCall={handleEndCall} />;
   }
 
   return (

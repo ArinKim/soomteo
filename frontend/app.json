@@ -12,7 +12,7 @@
       "android"
     ],
     "plugins": [
-      "expo-speech-recognition"
+      // "expo-speech-recognition"
     ],
     "android": {
       "package": "com.anonymous.soomteoapp",

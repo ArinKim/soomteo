@@ -18,7 +18,8 @@ if (System.getenv('EX_UPDATES_NATIVE_DEBUG') == "1") {
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
+    // Use a stable entry file path to avoid empty-path errors when the node command fails
+    entryFile = file("../index.js")
     reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
     hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
     debuggableVariants = expoDebuggableVariants
@@ -111,13 +112,14 @@ def reactNativeArchitectures() {
 android {
     ndkVersion rootProject.ext.ndkVersion
 
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    // Use explicit SDK numbers to avoid issues when rootProject.ext is not set
+    compileSdkVersion 34
 
     namespace 'com.anonymous.soomteoapp'
     defaultConfig {
         applicationId 'com.anonymous.soomteoapp'
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdkVersion 21
+        targetSdkVersion 34
         versionCode 1
         versionName "0.1.0"
     }
