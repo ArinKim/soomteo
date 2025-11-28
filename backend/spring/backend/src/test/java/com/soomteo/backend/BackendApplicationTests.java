@@ -1,4 +1,4 @@
-package com.soomter.backend;
+package com.soomteo.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
