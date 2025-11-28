@@ -44,10 +44,10 @@ cd project-root
 ### 2. Docker 컨테이너 시작
 ```bash
 # 첫 실행 또는 Dockerfile 변경 시
-docker-compose up --build
+docker-compose -f docker-compose.dev.yml up --build
 
 # 이후 실행
-docker-compose up
+docker-compose -f docker-compose.dev.yml up
 ```
 
 ### 3. 서비스 접속
