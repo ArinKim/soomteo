@@ -1,0 +1,9 @@
+FROM gradle:8.14-jdk17
+
+WORKDIR /app
+
+ENV GRADLE_USER_HOME=/app/.gradle
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
+
+# continuous build로 변경 감지
+CMD ["gradle", "bootRun", "--no-daemon", "--continuous", "-x", "test"]
