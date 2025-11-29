@@ -1,4 +1,6 @@
 package com.soomteo.backend.oauth.service;
+
+import com.soomteo.backend.oauth.dto.IdTokenPayload;
 import com.soomteo.backend.oauth.dto.KakaoTokenResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,11 +14,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Base64;
+import tools.jackson.databind.ObjectMapper;
+
 @Service
 @RequiredArgsConstructor
 public class KakaoOAuthService {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${kakao.client-id}")
     private String clientId;
@@ -62,6 +68,32 @@ public class KakaoOAuthService {
         } catch (Exception e) {
             System.err.println("카카오 토큰 요청 실패: " + e.getMessage());
             throw new RuntimeException("카카오 토큰 요청 실패", e);
+        }
+    }
+
+    /**
+     * ID 토큰 디코딩 (페이로드 추출)
+     * ID 토큰은 JWT 형식: header.payload.signature
+     */
+    public IdTokenPayload decodeIdToken(String idToken) {
+        try {
+            String[] parts = idToken.split("\\.");
+
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("유효하지 않은 ID 토큰 형식");
+            }
+
+            // 페이로드 부분 (두 번째 부분) 디코딩
+            String payload = parts[1];
+            byte[] decodedBytes = Base64.getUrlDecoder().decode(payload);
+            String decodedPayload = new String(decodedBytes);
+
+            // JSON을 객체로 변환
+            return objectMapper.readValue(decodedPayload, IdTokenPayload.class);
+
+        } catch (Exception e) {
+            System.err.println("ID 토큰 디코딩 실패: " + e.getMessage());
+            throw new RuntimeException("ID 토큰 디코딩 실패", e);
         }
     }
 }
