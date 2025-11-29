@@ -5,8 +5,8 @@ services:
     container_name: dev-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: soomter
-      MYSQL_DATABASE: soomter
+      MYSQL_ROOT_PASSWORD: soomteo
+      MYSQL_DATABASE: soomteo
     ports:
       - "3307:3306"
     volumes:
@@ -27,11 +27,14 @@ services:
       volumes:
         - ./backend/spring/backend:/app
       environment:
-        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/soomter
-        SPRING_DATASOURCE_USERNAME: soomter
-        SPRING_DATASOURCE_PASSWORD: soomter
+        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/soomteo
+        SPRING_DATASOURCE_USERNAME: soomteo
+        SPRING_DATASOURCE_PASSWORD: soomteo
         GRADLE_USER_HOME: /app/.gradle
         JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+        KAKAO_CLIENT_ID: "${KAKAO_CLIENT_ID}"
+        KAKAO_CLIENT_SECRET: "${KAKAO_CLIENT_SECRET}"
+        KAKAO_REDIRECT_URI: "${KAKAO_REDIRECT_URI}"
       depends_on:
         mysql:
           condition: service_healthy
