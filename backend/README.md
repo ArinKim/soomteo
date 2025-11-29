@@ -56,6 +56,32 @@ docker-compose -f docker-compose.dev.yml up
 - **Node.js 서버**: http://localhost:8081
 - **MySQL**: localhost:3307
 
+
+### 4. 데이터베이스 소스 설정
+- 로컬 개발 (Spring 로컬 -> Docker MySQL)
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3307/soomteo?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+spring.datasource.username=유저네임
+spring.datasource.password=패스워드
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+- allowPublicKeyRetrieval=true → MySQL 8+ 공개키 인증 문제 해결
+- useSSL=false → 로컬 개발용
+
+
+<br>
+
+- 배포용 (Docker Spring -> Docker MySQL)
+```properties
+# 향후 배포용
+jdbc:mysql://mysql:3306/soomteo?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul
+spring.datasource.url=jdbc:mysql://mysql:3306/soomteo?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul
+spring.datasource.username=유저네임
+spring.datasource.password=패스워드
+```
+- 컨테이너끼리 통신할 때는 호스트명을 mysql 로 사용
+- 포트는 3306 (컨테이너 내부 포트) 사용
+
 ---
 
 ## 주의사항

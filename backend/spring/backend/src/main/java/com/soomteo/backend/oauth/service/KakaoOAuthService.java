@@ -1,7 +1,9 @@
 package com.soomteo.backend.oauth.service;
 
 import com.soomteo.backend.oauth.dto.IdTokenPayload;
+import com.soomteo.backend.oauth.dto.KakaoLogoutResponse;
 import com.soomteo.backend.oauth.dto.KakaoTokenResponse;
+import com.soomteo.backend.oauth.dto.KakaoUserInfoResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -39,12 +41,10 @@ public class KakaoOAuthService {
     public KakaoTokenResponse getAccessToken(String code) {
         String url = "https://kauth.kakao.com/oauth/token";
 
-        // 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("charset", "utf-8");
 
-        // 바디 설정 (필수 파라미터)
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);
@@ -52,7 +52,6 @@ public class KakaoOAuthService {
         params.add("code", code);
         params.add("client_secret", clientSecret);
 
-        // 요청 보내기
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
         try {
@@ -72,8 +71,7 @@ public class KakaoOAuthService {
     }
 
     /**
-     * ID 토큰 디코딩 (페이로드 추출)
-     * ID 토큰은 JWT 형식: header.payload.signature
+     * ID 토큰 디코딩
      */
     public IdTokenPayload decodeIdToken(String idToken) {
         try {
@@ -83,17 +81,75 @@ public class KakaoOAuthService {
                 throw new IllegalArgumentException("유효하지 않은 ID 토큰 형식");
             }
 
-            // 페이로드 부분 (두 번째 부분) 디코딩
             String payload = parts[1];
             byte[] decodedBytes = Base64.getUrlDecoder().decode(payload);
             String decodedPayload = new String(decodedBytes);
 
-            // JSON을 객체로 변환
             return objectMapper.readValue(decodedPayload, IdTokenPayload.class);
 
         } catch (Exception e) {
             System.err.println("ID 토큰 디코딩 실패: " + e.getMessage());
             throw new RuntimeException("ID 토큰 디코딩 실패", e);
+        }
+    }
+
+    /**
+     * 사용자 정보 조회
+     * @param accessToken 사용자의 액세스 토큰
+     * @return 사용자 정보
+     */
+    public KakaoUserInfoResponse getUserInfo(String accessToken) {
+        String url = "https://kapi.kakao.com/v2/user/me";
+
+        // 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Bearer " + accessToken);
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<KakaoUserInfoResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    request,
+                    KakaoUserInfoResponse.class
+            );
+
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.err.println("카카오 사용자 정보 조회 실패: " + e.getMessage());
+            throw new RuntimeException("카카오 사용자 정보 조회 실패", e);
+        }
+    }
+
+    /**
+     * 카카오 로그아웃
+     */
+    public Long logout(String accessToken) {
+        String url = "https://kapi.kakao.com/v1/user/logout";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Bearer " + accessToken);
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<KakaoLogoutResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    KakaoLogoutResponse.class
+            );
+
+            KakaoLogoutResponse logoutResponse = response.getBody();
+            return logoutResponse != null ? logoutResponse.getId() : null;
+
+        } catch (Exception e) {
+            System.err.println("카카오 로그아웃 실패: " + e.getMessage());
+            throw new RuntimeException("카카오 로그아웃 실패", e);
         }
     }
 }
