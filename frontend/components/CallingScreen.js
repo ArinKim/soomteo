@@ -9,6 +9,7 @@ import {
   // Platform을 import하여 안드로이드 환경에서 추가 디버깅에 활용할 수 있습니다.
   Platform,
 } from "react-native";
+import { PermissionsAndroid, Alert } from "react-native";
 // styles 파일은 제공되지 않아 import만 유지합니다.
 import { styles } from "./styles";
 import Voice from "@react-native-voice/voice";
@@ -19,6 +20,14 @@ export default function CallingScreen({ friend, onEndCall }) {
   const [recognizing, setRecognizing] = useState(false);
   // 현재 실시간으로 업데이트 중인 STT 항목의 ID를 추적
   const [currentResultId, setCurrentResultId] = useState(null);
+  // 참조로 ID를 보관하면 이벤트 핸들러에서 최신 값을 안정적으로 참조할 수 있습니다.
+  const currentResultIdRef = useRef(null);
+  // 중복 start 호출을 방지하기 위한 상태(Ref)
+  const startingRef = useRef(false);
+  const listeningRef = useRef(false);
+  // 연속 No-match 억제용 카운터 및 리셋 타이머
+  const noMatchCountRef = useRef(0);
+  const noMatchResetTimerRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const silenceTimerRef = useRef(null);
   // [수정] ScrollView 관리를 위해 useRef 훅 사용
@@ -41,15 +50,60 @@ export default function CallingScreen({ friend, onEndCall }) {
         // ID를 null로 설정하여 다음 발화는 새로운 목록 항목으로 시작하게 함
         setCurrentResultId(null);
       }
-    }, 1500);
+    }, 2000);
+  };
+
+  // Android 마이크 권한 요청 (iOS는 Info.plist 설정 필요)
+  const requestMicrophonePermission = async () => {
+    if (Platform.OS === "android") {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: "마이크 권한 요청",
+            message: "음성 인식을 위해 마이크 권한이 필요합니다.",
+            buttonNeutral: "나중에",
+            buttonNegative: "취소",
+            buttonPositive: "허용",
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn("마이크 권한 요청 중 오류:", err);
+        return false;
+      }
+    }
+
+    // iOS의 경우 시뮬레이터/실기기 설정에서 권한을 관리합니다.
+    return true;
   };
 
   // STT 시작
   const startListening = async () => {
+    // 이미 시작 중이거나 청취 중이면 중복 호출을 막습니다.
+    if (startingRef.current || listeningRef.current) {
+      console.log(
+        "startListening: 이미 시작 중이거나 청취 중입니다. 호출 무시"
+      );
+      return;
+    }
+
+    startingRef.current = true;
     try {
       console.log("Voice start 시도...");
+      const ok = await requestMicrophonePermission();
+      if (!ok) {
+        console.warn("마이크 권한이 거부되어 STT를 시작할 수 없습니다.");
+        Alert.alert(
+          "권한 필요",
+          "마이크 권한을 허용해야 음성 인식이 가능합니다."
+        );
+        startingRef.current = false;
+        return;
+      }
       // 안드로이드에서는 'ko-KR' 언어 코드를 사용합니다.
       await Voice.start("ko-KR");
+      listeningRef.current = true;
       setRecognizing(true);
     } catch (err) {
       console.error("STT 시작 에러:", err);
@@ -59,8 +113,12 @@ export default function CallingScreen({ friend, onEndCall }) {
           "❗ Android STT: 네트워크 연결 또는 Google Play 서비스 상태를 확인하세요."
         );
       }
-      // 에러 발생 시 1초 후 재시작 시도
-      setTimeout(() => startListening(), 1000);
+      // 에러 발생 시 재시도하되 중복 재귀를 피함
+      setTimeout(() => {
+        if (!startingRef.current && !listeningRef.current) startListening();
+      }, 1000);
+    } finally {
+      startingRef.current = false;
     }
   };
 
@@ -80,7 +138,12 @@ export default function CallingScreen({ friend, onEndCall }) {
   useEffect(() => {
     const initializeSTT = async () => {
       console.log("📱 CallingScreen 마운트 - STT 초기화");
-      await startListening();
+      const ok = await requestMicrophonePermission();
+      if (ok) {
+        await startListening();
+      } else {
+        console.warn("마이크 권한 없음: STT 시작을 건너뜁니다.");
+      }
     };
 
     initializeSTT();
@@ -91,83 +154,174 @@ export default function CallingScreen({ friend, onEndCall }) {
     };
   }, []);
 
-  // Voice 이벤트 핸들러 바인딩 (currentResultId 변경에 의존)
+  // 이벤트 핸들러는 마운트 시 한 번만 바인딩하고, 참조(ref)를 통해 최신 currentResultId를 사용합니다.
   useEffect(() => {
     const onSpeechStart = (e) => {
       console.log("Voice onSpeechStart", e);
+      // 이미 리스닝 플래그가 있으면 중복 이벤트로 간주하고 무시
+      if (listeningRef.current) {
+        console.log("onSpeechStart: 이미 listening 상태, 무시");
+        return;
+      }
       setRecognizing(true);
       setIsSpeaking(true);
-      // 새 발화가 시작되면 새로운 ID를 할당하여 목록에 새 항목을 준비
-      setCurrentResultId(Date.now());
+      const id = Date.now();
+      currentResultIdRef.current = id;
+      setCurrentResultId(id);
     };
 
     const onSpeechEnd = (e) => {
       console.log("Voice onSpeechEnd", e);
       setRecognizing(false);
       setIsSpeaking(false);
-      // 발화가 끝나면 현재 ID를 초기화 (묵음 타이머와 중복 처리될 수 있지만, 안전을 위해 유지)
-      setCurrentResultId(null);
+      // currentResultId는 최종 결과(onSpeechResults)에서 해제합니다.
 
-      // STT 모듈을 닫고 1초 후 재시작 (연속 청취를 위해)
-      Voice.destroy()
-        .then(() => {
-          setTimeout(() => {
-            startListening();
-          }, 1000);
-        })
-        .catch(() => {});
+      // 인식 서비스가 멈춘 상태로 보이므로 listeningRef만 false로 전환
+      listeningRef.current = false;
+
+      // 안전장치: 만약 onSpeechResults가 오지 않는다면 일정 시간 후 세그먼트 종료 처리
+      setTimeout(() => {
+        if (currentResultIdRef.current !== null) {
+          // 최종 결과가 오지 않았을 때 세그먼트를 비어있는 결과로 마감하지 않고 그냥 초기화
+          currentResultIdRef.current = null;
+          setCurrentResultId(null);
+        }
+      }, 1200);
+
+      // 재시작은 에러 및 busy 상황을 고려해 onSpeechError/other 로직에서 처리합니다.
     };
 
     const onSpeechResults = (e) => {
-      console.log("Voice onSpeechResults (최종):", e.value && e.value[0]);
-      // 최종 결과는 중간 결과에 의해 이미 목록에 업데이트되었으므로 추가 저장 로직은 생략
+      const finalText = (e && e.value && e.value[0]) || "";
+      console.log("Voice onSpeechResults (최종):", finalText);
+
+      if (!finalText.trim()) {
+        // 빈 최종 결과는 무시
+        return;
+      }
+
+      // 최종 결과를 현재 세그먼트에 반영
+      setSttResults((prev) => {
+        let id = currentResultIdRef.current;
+        const timestamp = new Date().toLocaleTimeString("ko-KR");
+
+        if (!id) {
+          id = Date.now();
+        }
+
+        const index = prev.findIndex((item) => item.id === id);
+        if (index !== -1) {
+          return prev.map((item, i) =>
+            i === index
+              ? { ...item, text: finalText, timestamp: timestamp }
+              : item
+          );
+        } else {
+          const newResult = { id: id, text: finalText, timestamp: timestamp };
+          return [...prev, newResult];
+        }
+      });
+
+      // 이번 세그먼트 완료 처리
+      currentResultIdRef.current = null;
+      setCurrentResultId(null);
     };
 
     const onSpeechPartialResults = (e) => {
       const text = (e.value && e.value[0]) || "";
       console.log("Voice onSpeechPartialResults (중간/실시간):", text);
 
-      // 1. 실시간으로 STT 결과 목록 업데이트
-      setSttResults((prev) => {
-        const id = currentResultId;
-        if (id === null) return prev;
+      // 빈 문자열(인식 없음)은 목록을 생성하지 않고 묵음 타이머만 리셋
+      if (!text.trim()) {
+        resetSilenceTimer();
+        return;
+      }
 
-        const index = prev.findIndex((item) => item.id === id);
+      // 실시간으로 STT 결과 목록 업데이트 (ref 기반)
+      setSttResults((prev) => {
+        let id = currentResultIdRef.current;
         const timestamp = new Date().toLocaleTimeString("ko-KR");
 
+        if (id === null) {
+          // 아직 ID가 없으면 새로 생성
+          id = Date.now();
+          currentResultIdRef.current = id;
+          setCurrentResultId(id);
+        }
+
+        const index = prev.findIndex((item) => item.id === id);
         if (index !== -1) {
-          // 이미 존재하는 항목이면 텍스트만 덮어쓰기 (실시간 업데이트)
           return prev.map((item, i) =>
             i === index ? { ...item, text: text, timestamp: timestamp } : item
           );
         } else {
-          // 새로운 발화의 첫 번째 중간 결과인 경우, 새 항목 생성
-          const newResult = {
-            id: id,
-            text: text,
-            timestamp: timestamp,
-          };
+          const newResult = { id: id, text: text, timestamp: timestamp };
           return [...prev, newResult];
         }
       });
 
-      // 2. 음성이 감지되면 묵음 타이머 리셋
       resetSilenceTimer();
     };
 
     const onSpeechError = (e) => {
-      console.error("Voice onSpeechError:", e);
+      try {
+        // 상세한 에러 객체를 문자열로 로깅하여 디버깅에 도움을 줍니다.
+        console.error("Voice onSpeechError:", JSON.stringify(e));
+      } catch (err) {
+        console.error("Voice onSpeechError (toString):", e);
+      }
+
       setRecognizing(false);
       setIsSpeaking(false);
+      currentResultIdRef.current = null;
       setCurrentResultId(null);
 
-      // 에러 시에도 재시작 시도
+      // 에러 코드 파싱
+      const code = (e && e.error && e.error.code) || (e && e.code) || null;
+      let delay = 1000;
+
+      if (code === "8") {
+        // RecognitionService busy
+        delay = 2500;
+        // reset no-match counter
+        noMatchCountRef.current = 0;
+      } else if (code === "7") {
+        // No match - 너무 자주 재시작하지 않도록 억제
+        noMatchCountRef.current = (noMatchCountRef.current || 0) + 1;
+        // 연속 5회 이상 발생하면 대기 시간을 늘리고 카운터를 리셋하는 쿨다운을 둔다
+        if (noMatchCountRef.current >= 5) {
+          delay = 3000;
+          // 기존 타이머가 있으면 제거
+          if (noMatchResetTimerRef.current)
+            clearTimeout(noMatchResetTimerRef.current);
+          noMatchResetTimerRef.current = setTimeout(() => {
+            noMatchCountRef.current = 0;
+            noMatchResetTimerRef.current = null;
+          }, 7000);
+        } else {
+          // 짧게 재시도
+          delay = 1000;
+        }
+      } else if (code === "11") {
+        // Didn't understand
+        delay = 1200;
+        noMatchCountRef.current = 0;
+      } else {
+        // 알 수 없는 에러의 경우 기본 대기
+        delay = 1000;
+        noMatchCountRef.current = 0;
+      }
+
+      listeningRef.current = false;
+      startingRef.current = false;
+
       setTimeout(() => {
-        startListening();
-      }, 1000);
+        if (!startingRef.current && !listeningRef.current) {
+          startListening();
+        }
+      }, delay);
     };
 
-    // 이벤트 리스너 바인딩
     Voice.onSpeechStart = onSpeechStart;
     Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechResults = onSpeechResults;
@@ -177,8 +331,13 @@ export default function CallingScreen({ friend, onEndCall }) {
     return () => {
       Voice.removeAllListeners();
       Voice.destroy().catch(() => {});
+      // No-match 리셋 타이머 정리
+      if (noMatchResetTimerRef.current) {
+        clearTimeout(noMatchResetTimerRef.current);
+        noMatchResetTimerRef.current = null;
+      }
     };
-  }, [currentResultId]); // currentResultId가 변경될 때마다 이벤트 핸들러가 갱신되어 최신 ID를 참조
+  }, []);
 
   // 통화 종료
   const handleEndCall = async () => {
