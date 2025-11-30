@@ -10,45 +10,42 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
     private final UserRepository userRepository;
 
     /**
      * 카카오 로그인: 회원가입 또는 로그인 처리
-     * @param kakaoUser 카카오 사용자 정보
-     * @return 저장된 User 엔티티
      */
     @Transactional
-    public User loginOrRegister(KakaoUserInfoResponse kakaoUser) {
+    public User loginOrRegister(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
         Long kakaoId = kakaoUser.getId();
 
-        // 1. 카카오 ID로 기존 회원 조회
         return userRepository.findByKakaoId(kakaoId)
                 .map(user -> {
-                    // 2-1. 기존 회원: 정보 업데이트 및 로그인 시각 갱신
+                    // 기존 회원: 정보 업데이트
                     updateUserInfo(user, kakaoUser);
                     user.updateLastLogin();
+                    user.updateRefreshToken(refreshToken, refreshTokenExpiresIn);  // 리프레시 토큰 저장
 
-                    System.out.println("✅ 기존 회원 로그인: " + user.getNickname());
+                    System.out.println("기존 회원 로그인: " + user.getNickname());
                     return userRepository.save(user);
                 })
                 .orElseGet(() -> {
-                    // 2-2. 신규 회원: 회원가입
-                    User newUser = createUser(kakaoUser);
+                    // 신규 회원: 회원가입
+                    User newUser = createUser(kakaoUser, refreshToken, refreshTokenExpiresIn);
 
-                    System.out.println("🆕 신규 회원 가입: " + newUser.getNickname());
+                    System.out.println("신규 회원 가입: " + newUser.getNickname());
                     return userRepository.save(newUser);
                 });
     }
 
     /**
-     * 카카오 사용자 정보로 User 엔티티 생성
+     * 리프레시 토큰 포함하여 사용자 생성
      */
-    private User createUser(KakaoUserInfoResponse kakaoUser) {
+    private User createUser(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
         KakaoUserInfoResponse.KakaoAccount account = kakaoUser.getKakaoAccount();
         KakaoUserInfoResponse.Profile profile = account != null ? account.getProfile() : null;
 
-        return User.builder()
+        User user = User.builder()
                 .kakaoId(kakaoUser.getId())
                 .nickname(profile != null && profile.getNickname() != null
                         ? profile.getNickname()
@@ -61,6 +58,11 @@ public class UserService {
                 .birthday(account != null ? account.getBirthday() : null)
                 .birthyear(account != null ? account.getBirthyear() : null)
                 .build();
+
+        // 리프레시 토큰 설정
+        user.updateRefreshToken(refreshToken, refreshTokenExpiresIn);
+
+        return user;
     }
 
     /**
@@ -82,19 +84,16 @@ public class UserService {
         );
     }
 
-    /**
-     * 카카오 ID로 사용자 조회
-     */
     public User findByKakaoId(Long kakaoId) {
-        return userRepository.findByKakaoId(kakaoId)
-                .orElse(null);
+        return userRepository.findByKakaoId(kakaoId).orElse(null);
     }
 
-    /**
-     * ID로 사용자 조회
-     */
     public User findById(Long id) {
-        return userRepository.findById(id)
-                .orElse(null);
+        return userRepository.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public User save(User user) {
+        return userRepository.save(user);
     }
 }
