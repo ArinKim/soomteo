@@ -71,6 +71,42 @@ public class KakaoOAuthService {
     }
 
     /**
+     * 리프레시 토큰으로 액세스 토큰 갱신
+     */
+    public KakaoTokenResponse refreshAccessToken(String refreshToken) {
+        String url = "https://kauth.kakao.com/oauth/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.add("charset", "utf-8");
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("client_id", clientId);
+        params.add("refresh_token", refreshToken);
+        params.add("client_secret", clientSecret);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        try {
+            System.out.println("토큰 갱신 시도 !! : " + refreshToken);
+            ResponseEntity<KakaoTokenResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    KakaoTokenResponse.class
+            );
+
+            System.out.println("토큰 갱신 성공! 액세스 : " + response.getBody().getAccessToken() + " 리프레시 : " + response.getBody().getRefreshToken());
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.err.println("토큰 갱신 실패: " + e.getMessage());
+            throw new RuntimeException("토큰 갱신 실패", e);
+        }
+    }
+
+    /**
      * ID 토큰 디코딩
      */
     public IdTokenPayload decodeIdToken(String idToken) {
@@ -95,13 +131,10 @@ public class KakaoOAuthService {
 
     /**
      * 사용자 정보 조회
-     * @param accessToken 사용자의 액세스 토큰
-     * @return 사용자 정보
      */
     public KakaoUserInfoResponse getUserInfo(String accessToken) {
         String url = "https://kapi.kakao.com/v2/user/me";
 
-        // 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set("Authorization", "Bearer " + accessToken);

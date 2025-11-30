@@ -45,6 +45,9 @@ public class OAuthController {
         System.out.println("액세스 토큰 = " + tokenResponse.getAccessToken());
         System.out.println("만료 시간 = " + tokenResponse.getExpiresIn() + "초");
 
+        System.out.println("리프레시 토큰 = " + tokenResponse.getRefreshToken());
+        System.out.println("만료 시간 = " + tokenResponse.getRefreshTokenExpiresIn() + "초");
+
         // 2. 사용자 정보 조회
         KakaoUserInfoResponse kakaoUser = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
 
@@ -56,7 +59,11 @@ public class OAuthController {
         }
 
         // 3. DB에 회원가입 또는 로그인 처리
-        User user = userService.loginOrRegister(kakaoUser);
+        User user = userService.loginOrRegister(
+                kakaoUser,
+                tokenResponse.getRefreshToken(),
+                tokenResponse.getRefreshTokenExpiresIn()
+        );
 
         System.out.println("\n=== DB 저장 완료 ===");
         System.out.println("사용자 ID = " + user.getId());
@@ -130,6 +137,45 @@ public class OAuthController {
 
         System.out.println("✅ 사용자 정보 확인 완료. 메인 페이지 표시");
         return "main";
+    }
+
+    /**
+     * 토큰 갱신 API
+     */
+    @PostMapping("/api/v1/auth/token/refresh")
+    @ResponseBody
+    public String refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String userId = getCookieValue(request, "user_id");
+            if (userId == null) {
+                return "사용자 ID가 없습니다.";
+            }
+
+            User user = userService.findById(Long.parseLong(userId));
+            if (user == null || user.getRefreshToken() == null) {
+                return "리프레시 토큰이 없습니다. 다시 로그인하세요.";
+            }
+
+            // 토큰 갱신 요청
+            KakaoTokenResponse newTokens = kakaoOAuthService.refreshAccessToken(user.getRefreshToken());
+
+            // DB에 새로운 리프레시 토큰 저장 (갱신된 경우)
+            if (newTokens.getRefreshToken() != null) {
+                user.updateRefreshToken(newTokens.getRefreshToken(), newTokens.getRefreshTokenExpiresIn());
+                userService.save(user);
+            }
+
+            // 새로운 액세스 토큰을 쿠키에 저장
+            Cookie accessTokenCookie = new Cookie("kakao_access_token", newTokens.getAccessToken());
+            accessTokenCookie.setHttpOnly(false);
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(newTokens.getExpiresIn());
+            response.addCookie(accessTokenCookie);
+
+            return "토큰 갱신 성공! 액세스 : " + newTokens.getAccessToken() + " 리프레시 : " + newTokens.getRefreshToken();
+        } catch (Exception e) {
+            return "토큰 갱신 실패: " + e.getMessage();
+        }
     }
 
     @PostMapping("/api/v1/auth/kakao/logout")

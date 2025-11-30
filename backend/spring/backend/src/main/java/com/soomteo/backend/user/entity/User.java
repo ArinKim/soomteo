@@ -54,6 +54,12 @@ public class User {
     @Column
     private String birthyear;  // 출생연도 (YYYY)
 
+    @Column(length = 500)
+    private String refreshToken;
+
+    @Column
+    private LocalDateTime refreshTokenExpiresAt;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;  // 가입 시각
 
@@ -92,5 +98,13 @@ public class User {
     // 로그인 시각 업데이트
     public void updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    // 리프레시 토큰 업데이트
+    public void updateRefreshToken(String refreshToken, Integer expiresIn) {
+        this.refreshToken = refreshToken;
+        if (expiresIn != null) {
+            this.refreshTokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
+        }
     }
 }
