@@ -17,6 +17,7 @@ import FriendAddModal from "./components/FriendAddModal";
 import ProfileEditModal from "./components/ProfileEditModal";
 import ChatListView from "./components/ChatListView";
 import CallingScreen from "./components/CallingScreen";
+import TTSScreen from "./components/TTSScreen";
 import { styles } from "./components/styles";
 import { PERSONALITY_OPTIONS, AVATAR_COLORS } from "./components/constants";
 
@@ -315,7 +316,15 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.appHeader}>
         <Text style={styles.appHeaderTitle}>
-          {tab === "friends" ? "친구" : tab === "chats" ? "채팅" : "설정"}
+          {tab === "friends"
+            ? "친구"
+            : tab === "chats"
+            ? "채팅"
+            : tab === "settings"
+            ? "설정"
+            : tab === "tts"
+            ? "TTS"
+            : ""}
         </Text>
         <TouchableOpacity
           onPress={() => {
@@ -347,6 +356,7 @@ export default function App() {
             onOpenAccount={() => alert("계정 설정 화면은 준비 중입니다.")}
           />
         )}
+        {tab === "tts" && <TTSScreen activeFriend={selectedFriend} />}
       </View>
 
       <View style={styles.tabBar}>
@@ -373,6 +383,9 @@ export default function App() {
           <Text style={tab === "settings" ? styles.tabActive : undefined}>
             설정
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={() => setTab("tts")}>
+          <Text style={tab === "tts" ? styles.tabActive : undefined}>TTS</Text>
         </TouchableOpacity>
       </View>
 
