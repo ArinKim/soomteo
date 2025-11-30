@@ -29,7 +29,7 @@ services:
       volumes:
         - ./backend/spring/backend:/app
       environment:
-        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3307/soomteo
+        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/soomteo
         SPRING_DATASOURCE_USERNAME: soomteo
         SPRING_DATASOURCE_PASSWORD: soomteo
         GRADLE_USER_HOME: /app/.gradle
@@ -52,6 +52,17 @@ services:
       - mysql
       - spring
       
+  redis:
+    image: redis:7
+    container_name: redis-soomteo
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
 volumes:
   mysql-data:
   node_modules:
+  redis-data:
