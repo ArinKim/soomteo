@@ -19,6 +19,7 @@ public class ChatHistoryService {
 
     // TODO: 로그인 붙으면 SecurityContext에서 현재 유저 id 가져오기
     private static final Long TEST_USER_ID = 1L;  // 임시용
+    private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
 
     public void saveMessage(ChatMessage message) {
         if (message == null || message.getRoomId() == null) return;
@@ -40,7 +41,7 @@ public class ChatHistoryService {
 
         java.time.LocalDateTime createdAt =
                 java.time.Instant.ofEpochMilli(message.getTimestamp())
-                        .atZone(java.time.ZoneId.systemDefault())
+                        .atZone(ZONE)
                         .toLocalDateTime();
 
         ChatMessageEntity entity = ChatMessageEntity.builder()
@@ -97,7 +98,7 @@ public class ChatHistoryService {
                         : ChatMessage.MessageType.AI;
 
         long ts = e.getCreatedAt()
-                .atZone(ZoneId.systemDefault())
+                .atZone(ZONE)
                 .toInstant()
                 .toEpochMilli();
 

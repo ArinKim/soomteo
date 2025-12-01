@@ -14,15 +14,45 @@ public class FriendRestController {
 
     private final FriendService friendService;
 
-    // /api/friends/1 이런 식으로 호출
+    /**
+     * 특정 유저의 친구 목록 조회
+     * GET /api/friends/{userId}
+     */
     @GetMapping("/{userId}")
     public List<FriendDto> getFriendsByUser(@PathVariable Long userId) {
         return friendService.getFriendsByUserId(userId);
     }
 
-    // 선택사항: 기존 /api/friends 도 테스트용으로 남기고 싶으면 이렇게 둬도 됨
-    @GetMapping
-    public List<FriendDto> getMyFriends() {
-        return friendService.getFriendsByUserId(1L);   // 테스트용 userId=1 고정
+    /**
+     * 친구 생성
+     * POST /api/friends/{userId}
+     */
+    @PostMapping("/{userId}")
+    public FriendDto createFriend(
+            @PathVariable Long userId,
+            @RequestBody FriendDto friendDto
+    ) {
+        return friendService.createFriend(userId, friendDto);
+    }
+
+    /**
+     * 친구 수정
+     * PUT /api/friends/{friendId}
+     */
+    @PutMapping("/{friendId}")
+    public FriendDto updateFriend(
+            @PathVariable Long friendId,
+            @RequestBody FriendDto friendDto
+    ) {
+        return friendService.updateFriend(friendId, friendDto);
+    }
+
+    /**
+     * 친구 삭제
+     * DELETE /api/friends/{friendId}
+     */
+    @DeleteMapping("/{friendId}")
+    public void deleteFriend(@PathVariable Long friendId) {
+        friendService.deleteFriend(friendId);
     }
 }

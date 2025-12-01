@@ -1,6 +1,8 @@
 package com.soomteo.backend.chat.service;
 
 import com.soomteo.backend.chat.dto.ChatMessage;
+import com.soomteo.backend.friend.entity.FriendEntity;
+import com.soomteo.backend.friend.service.FriendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class ChatAiService {
 
     private final ChatHistoryService chatHistoryService;
+    private final FriendService friendService;
 
     // 간단히 new 로 생성 (Bean 으로 빼고 싶으면 @Bean 으로 따로 정의해도 됨)
     private final RestTemplate restTemplate = new RestTemplate();
@@ -27,6 +30,14 @@ public class ChatAiService {
     private String upstageApiKey;
 
     public ChatMessage sendToUpstage(String roomId, String userId, String content) {
+
+        Long friendId = Long.valueOf(roomId);
+        FriendEntity friend = friendService.getFriendById(friendId);
+
+        String characterPrompt =
+                (friend != null && friend.getPrompt() != null && !friend.getPrompt().isBlank())
+                        ? friend.getPrompt()
+                        : "사용자의 친한 또래 친구처럼 반말로 편하게 대화해줘.";
 
         // 최근 대화 N개 불러오기 (맥락 유지용)
         List<ChatMessage> history = chatHistoryService.findRecentMessages(roomId, 20);
@@ -39,6 +50,7 @@ public class ChatAiService {
         systemMsg.put("role", "system");
         systemMsg.put("content",
                 String.join("\n",
+                        characterPrompt,
                         "너는 사용자의 친한 또래 친구처럼 편하게 카카오톡/문자를 주고받는 역할이야.",
                         "",
                         "- 말투는 반말, 너무 예의바른 존댓말은 쓰지 마. (예: '~요', '~님' 대신 '~야', '~해', '~했어?' 등)",
@@ -59,6 +71,7 @@ public class ChatAiService {
                         "- 무조건 채팅하는 느낌으로 답장을 보내줘. (말풍선으로 표현하면) 이런 건 같이 작성할 필요 없어."
                 )
         );
+//        systemMsg.put(characterPrompt);
 
         upstageMessages.add(systemMsg);
 
