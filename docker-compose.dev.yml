@@ -18,6 +18,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: dev-redis
+    restart: always
+    ports:
+      - "6379:6379"      # 로컬에서 접속할 일 없으면 이 줄은 빼도 됨
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
       
   spring:
       build:
@@ -34,8 +49,14 @@ services:
         SPRING_DATASOURCE_PASSWORD: soomteo
         GRADLE_USER_HOME: /app/.gradle
         JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+        # ✅ 스프링이 redis 컨테이너를 보도록 설정
+        SPRING_DATA_REDIS_HOST: redis
+        SPRING_DATA_REDIS_PORT: 6379
       depends_on:
         mysql:
+          condition: service_healthy
+        redis: # ✅ redis가 떠야 spring 기동
           condition: service_healthy
         
   node:
@@ -55,3 +76,4 @@ services:
 volumes:
   mysql-data:
   node_modules:
+  redis-data:     # ✅ redis 데이터 볼륨

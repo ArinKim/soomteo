@@ -9,12 +9,14 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.2.1",
     "expo": "~48.0.21",
     "expo-speech-recognition": "^3.0.1",
+    "expo-splash-screen": "~0.18.2",
+    "expo-status-bar": "~1.4.4",
     "react": "18.2.0",
     "react-native": "0.71.14",
-    "expo-splash-screen": "~0.18.2",
-    "expo-status-bar": "~1.4.4"
+    "text-encoding": "^0.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
