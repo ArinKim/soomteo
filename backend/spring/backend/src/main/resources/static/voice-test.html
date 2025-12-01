@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>STT 텍스트 → 채팅방 전송 테스트</title>
+
+    <!-- SockJS & STOMP: WebSocket 채팅방 구독용 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            height: 100vh;
+        }
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0 0 12px;
+        }
+        h2 {
+            font-size: 15px;
+            margin: 16px 0 8px;
+        }
+        .field {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .field label {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        .field input, .field textarea {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .field textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #4f46e5;
+            color: #fff;
+            font-weight: 500;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .log-area {
+            flex: 1;
+            margin-top: 8px;
+            padding: 8px;
+            font-size: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: #111827;
+            color: #e5e7eb;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .chat-area {
+            flex: 1;
+            margin-top: 8px;
+            padding: 8px;
+            font-size: 13px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: #f9fafb;
+            overflow-y: auto;
+        }
+        .msg {
+            max-width: 70%;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .msg-meta {
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #4b5563;
+        }
+        .msg-ai {
+            background: #ffffff;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .msg-me {
+            background: #4f46e5;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .chat-wrapper.me {
+            align-items: flex-end;
+        }
+        .small-text {
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<!-- 왼쪽: STT 텍스트 입력 → /api/chat/voice POST -->
+<div class="panel" style="border-right:1px solid #ddd;">
+    <h1>STT 텍스트 → 채팅방 전송 테스트</h1>
+
+    <div class="field">
+        <label>roomId (예: testUser:mom)</label>
+        <input id="roomIdInput" type="text" placeholder="예: testUser:mom" />
+    </div>
+
+    <div class="field">
+        <label>보내는 사람 이름 (senderName)</label>
+        <input id="senderNameInput" type="text" placeholder="예: 나" value="나" />
+    </div>
+
+    <div class="field">
+        <label>STT로부터 받은 텍스트라고 가정하고 입력해 보세요</label>
+        <textarea id="sttTextInput" placeholder="예: 오늘 진짜 피곤해"></textarea>
+    </div>
+
+    <div class="row" style="margin-bottom:8px;">
+        <button onclick="sendVoiceMessage()">/api/chat/voice 로 보내기</button>
+        <button class="btn-secondary" onclick="clearLogs()">로그 지우기</button>
+    </div>
+
+    <div class="small-text">
+        이 페이지는 STT 결과 텍스트를 대신 입력해서<br>
+        <code>POST /api/chat/voice</code> 호출이 잘 되는지 확인하기 위한 테스트용입니다.
+        <br>오른쪽에서 같은 roomId 로 WebSocket을 구독하면,
+        메시지가 채팅처럼 바로 뜨는지 볼 수 있어요.
+    </div>
+
+    <h2 style="margin-top:16px;">요청/응답 로그</h2>
+    <div id="logArea" class="log-area"></div>
+</div>
+
+<!-- 오른쪽: 같은 roomId를 WebSocket으로 구독 → 채팅 UI -->
+<div class="panel">
+    <h2>채팅방 WebSocket 구독</h2>
+
+    <div class="field">
+        <label>WebSocket 구독할 roomId (왼쪽과 동일한 값 입력)</label>
+        <input id="wsRoomIdInput" type="text" placeholder="예: testUser:mom" />
+    </div>
+
+    <div class="row">
+        <button class="btn-secondary" onclick="connectAndSubscribe()">연결 & 구독</button>
+        <span class="small-text" id="wsStatusText">미연결</span>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+        <!-- 수신 메시지가 여기에 표시됩니다 -->
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = "";  // 같은 서버라면 빈 문자열로 두면 됨
+
+    // ---------- 왼쪽: /api/chat/voice 호출 ----------
+
+    function appendLog(text) {
+        const logArea = document.getElementById("logArea");
+        logArea.textContent += text + "\n";
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function clearLogs() {
+        document.getElementById("logArea").textContent = "";
+    }
+
+    async function sendVoiceMessage() {
+        const roomId = document.getElementById("roomIdInput").value.trim();
+        const senderName = document.getElementById("senderNameInput").value.trim() || "나";
+        const content = document.getElementById("sttTextInput").value.trim();
+
+        if (!roomId) {
+            alert("roomId 를 입력해 주세요. (예: testUser:mom)");
+            return;
+        }
+        if (!content) {
+            alert("보낼 텍스트(STT 결과라고 가정)를 입력해 주세요.");
+            return;
+        }
+
+        const body = {
+            roomId,
+            senderName,
+            content
+        };
+
+        appendLog(`>>> POST /api/chat/voice\n${JSON.stringify(body, null, 2)}\n`);
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/chat/voice`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+
+            const text = await res.text();
+            appendLog(`<<< status: ${res.status}\n${text}\n`);
+        } catch (e) {
+            console.error(e);
+            appendLog(`!!! error: ${e}`);
+        }
+    }
+
+    // ---------- 오른쪽: WebSocket 구독 ----------
+
+    let stompClient = null;
+    let currentSubscription = null;
+
+    function connectWebSocket(callback) {
+        if (stompClient && stompClient.connected) {
+            callback && callback();
+            return;
+        }
+        const socket = new SockJS(`${API_BASE_URL}/ws`);
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // 로그 보고 싶으면 주석 처리
+
+        stompClient.connect({}, () => {
+            console.log("WebSocket connected");
+            document.getElementById("wsStatusText").textContent = "연결됨";
+            callback && callback();
+        }, (err) => {
+            console.error("WebSocket error:", err);
+            document.getElementById("wsStatusText").textContent = "에러 발생 (콘솔 확인)";
+        });
+    }
+
+    function connectAndSubscribe() {
+        const roomId = document.getElementById("wsRoomIdInput").value.trim();
+        if (!roomId) {
+            alert("구독할 roomId 를 입력해 주세요. (예: testUser:mom)");
+            return;
+        }
+
+        connectWebSocket(() => {
+            if (currentSubscription) {
+                currentSubscription.unsubscribe();
+            }
+            currentSubscription = stompClient.subscribe(`/sub/chat/${roomId}`, (msg) => {
+                try {
+                    const payload = JSON.parse(msg.body);
+                    addMessageToChat(payload);
+                } catch (e) {
+                    console.error("failed to parse message", e, msg.body);
+                }
+            });
+            document.getElementById("wsStatusText").textContent = `구독 중: ${roomId}`;
+            console.log("Subscribed room:", roomId);
+        });
+    }
+
+    function addMessageToChat(msgObj) {
+        const chatArea = document.getElementById("chatArea");
+
+        const wrapper = document.createElement("div");
+        const isMe = msgObj.senderName === "나"; // 필요하면 더 똑똑하게 판별 가능
+        wrapper.className = "chat-wrapper" + (isMe ? " me" : "");
+
+        const meta = document.createElement("div");
+        meta.className = "msg-meta";
+        const senderName = msgObj.senderName || "???";
+        meta.textContent = senderName + (msgObj.inputType === "voice" ? " (음성→텍스트)" : "");
+
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "msg " + (isMe ? "msg-me" : "msg-ai");
+        msgDiv.textContent = msgObj.content || "";
+
+        wrapper.appendChild(meta);
+        wrapper.appendChild(msgDiv);
+
+        chatArea.appendChild(wrapper);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+</script>
+</body>
+</html>

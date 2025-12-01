@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>숨터 AI 캐릭터 채팅 데모</title>
+    <!-- SockJS & STOMP (WebSocket용) -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 340px;
+            background: #ffffff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0 0 8px;
+        }
+        h2 {
+            font-size: 15px;
+            margin: 16px 0 8px;
+        }
+        .section {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .field {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .field label {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        .field input,
+        .field textarea {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .field textarea {
+            resize: vertical;
+            min-height: 40px;
+        }
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #4f46e5;
+            color: #fff;
+            font-weight: 500;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .char-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .char-item {
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            cursor: pointer;
+        }
+        .char-item:hover {
+            background: #eef2ff;
+        }
+        .char-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .char-id {
+            font-size: 11px;
+            color: #6b7280;
+        }
+        .char-personality {
+            font-size: 12px;
+            color: #4b5563;
+            margin-top: 4px;
+        }
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-header {
+            height: 56px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            background: #f9fafb;
+            box-sizing: border-box;
+            justify-content: space-between;
+        }
+        .chat-title {
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-title-main {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .chat-title-sub {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .chat-body {
+            flex: 1;
+            padding: 12px 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            background: #e5e7eb;
+        }
+        .msg {
+            max-width: 60%;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .msg-meta {
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #4b5563;
+        }
+        .msg-ai {
+            background: #ffffff;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .msg-me {
+            background: #4f46e5;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-footer {
+            padding: 8px 12px;
+            border-top: 1px solid #ddd;
+            box-sizing: border-box;
+            background: #f9fafb;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .chat-footer input[type="text"] {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 9999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .small-text {
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<!-- 왼쪽: 캐릭터 생성 & 목록 -->
+<div class="sidebar">
+    <div class="section">
+        <h1>숨터 AI 캐릭터 설정</h1>
+        <div class="field">
+            <label>내 사용자 ID (카카오 로그인 ID를 대신 입력)</label>
+            <input id="myUserIdInput" type="text" placeholder="예: kakao_12345" value="testUser" />
+        </div>
+        <div class="field">
+            <label>내 닉네임 (내가 보낼 때 이름)</label>
+            <input id="myNameInput" type="text" placeholder="예: 나, 지민, 민지" value="나" />
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>캐릭터 생성 / 수정</h2>
+
+        <div class="field">
+            <label>캐릭터 ID (영문/숫자, 한 유저 안에서 고유)</label>
+            <input id="charIdInput" type="text" placeholder="예: mom, friend1" />
+        </div>
+
+        <div class="field">
+            <label>표시 이름</label>
+            <input id="charNameInput" type="text" placeholder="예: 따뜻한 엄마" />
+        </div>
+
+        <div class="field">
+            <label>성격 / 말투 설명</label>
+            <textarea id="charPersonalityInput" placeholder="예: 잔소리도 하지만 다정하게 챙겨주는 엄마 같은 말투"></textarea>
+        </div>
+
+        <div class="field">
+            <label>목소리 타입 (지금은 텍스트만 저장)</label>
+            <input id="charVoiceInput" type="text" placeholder="예: FEMALE_SOFT" />
+        </div>
+
+        <div class="field">
+            <label>프로필 이미지 URL (선택)</label>
+            <input id="charImageInput" type="text" placeholder="예: https://..." />
+        </div>
+
+        <div class="field">
+            <label>기간 시작일</label>
+            <input id="periodStartInput" type="date" />
+        </div>
+
+        <div class="field">
+            <label>기간 종료일</label>
+            <input id="periodEndInput" type="date" />
+        </div>
+
+        <div class="field">
+            <label>하루 시작 시간</label>
+            <input id="startTimeInput" type="time" value="07:00" />
+        </div>
+
+        <div class="field">
+            <label>하루 종료 시간</label>
+            <input id="endTimeInput" type="time" value="21:00" />
+        </div>
+
+        <div class="field">
+            <label>하루 몇 번 메시지</label>
+            <input id="countInput" type="number" min="1" value="3" />
+        </div>
+
+        <div class="field">
+            <label>최소 간격 (시간)</label>
+            <input id="intervalInput" type="number" min="1" value="3" />
+        </div>
+
+        <button onclick="onCreateCharacter()">캐릭터 저장 & 스케줄 설정</button>
+        <div class="small-text" style="margin-top:4px;">
+            저장 후 아래 캐릭터 목록에서 선택하면 채팅을 시작할 수 있어요.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>등록된 캐릭터</h2>
+        <button class="btn-secondary" onclick="loadCharacters()">목록 새로고침</button>
+        <div id="charList" class="char-list" style="margin-top:8px;"></div>
+    </div>
+</div>
+
+<!-- 오른쪽: 채팅 -->
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="chat-title">
+            <div class="chat-title-main" id="chatTitleMain">캐릭터를 선택해 주세요</div>
+            <div class="chat-title-sub" id="chatTitleSub">등록된 캐릭터 중 하나를 선택하면 채팅을 시작합니다.</div>
+        </div>
+        <button class="btn-secondary" onclick="onShowSchedule()" id="scheduleBtn" disabled>
+            오늘 스케줄 보기
+        </button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+        <!-- 메시지들이 여기 쌓입니다 -->
+    </div>
+
+    <div class="chat-footer">
+        <input id="chatInput" type="text" placeholder="메시지 입력..." onkeydown="onChatInputKey(event)" disabled />
+        <button onclick="onSendMessage()" id="sendBtn" disabled>전송</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = "";
+    let stompClient = null;
+    let currentRoomId = null;
+    let currentSubscription = null;
+
+    function connectWebSocket(callback) {
+        if (stompClient && stompClient.connected) {
+            callback && callback();
+            return;
+        }
+        const socket = new SockJS(`${API_BASE_URL}/ws`);
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+        stompClient.connect({}, () => {
+            console.log("WebSocket connected");
+            callback && callback();
+        }, (err) => {
+            console.error("WebSocket error:", err);
+        });
+    }
+
+    function subscribeRoom(roomId) {
+        if (!stompClient || !stompClient.connected) {
+            console.warn("stompClient not connected yet");
+            return;
+        }
+        if (currentSubscription) {
+            currentSubscription.unsubscribe();
+        }
+        currentRoomId = roomId;
+        currentSubscription = stompClient.subscribe(`/sub/chat/${roomId}`, (msg) => {
+            try {
+                const payload = JSON.parse(msg.body);
+                addMessageToUI(payload);
+            } catch (e) {
+                console.error("failed to parse message", e, msg.body);
+            }
+        });
+        console.log("Subscribed room:", roomId);
+    }
+
+    function addMessageToUI(msgObj) {
+        const chatBody = document.getElementById("chatBody");
+
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+
+        const meta = document.createElement("div");
+        meta.className = "msg-meta";
+
+        const senderName = msgObj.senderName || "알 수 없음";
+        meta.textContent = senderName;
+
+        const msgDiv = document.createElement("div");
+        const isMe = senderName === document.getElementById("myNameInput").value;
+        msgDiv.className = "msg " + (isMe ? "msg-me" : "msg-ai");
+        msgDiv.textContent = msgObj.content || "";
+
+        wrapper.appendChild(meta);
+        wrapper.appendChild(msgDiv);
+
+        chatBody.appendChild(wrapper);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function loadHistory(roomId) {
+        const res = await fetch(`${API_BASE_URL}/api/chat/${roomId}/messages`);
+        if (!res.ok) {
+            console.error("failed to load history", res.status);
+            return;
+        }
+        const arr = await res.json();
+        const chatBody = document.getElementById("chatBody");
+        chatBody.innerHTML = "";
+        for (const raw of arr) {
+            try {
+                const obj = JSON.parse(raw);
+                addMessageToUI(obj);
+            } catch (e) {
+                console.error("failed to parse history item", e, raw);
+            }
+        }
+    }
+
+    async function onCreateCharacter() {
+        const userId = document.getElementById("myUserIdInput").value.trim();
+        if (!userId) {
+            alert("먼저 내 userId 를 입력해 주세요.");
+            return;
+        }
+
+        const characterId = document.getElementById("charIdInput").value.trim();
+        const displayName = document.getElementById("charNameInput").value.trim();
+        const personality = document.getElementById("charPersonalityInput").value.trim();
+        const voiceType = document.getElementById("charVoiceInput").value.trim();
+        const profileImageUrl = document.getElementById("charImageInput").value.trim();
+
+        const periodStartDate = document.getElementById("periodStartInput").value;
+        const periodEndDate = document.getElementById("periodEndInput").value;
+
+        const startTime = document.getElementById("startTimeInput").value || "07:00";
+        const endTime = document.getElementById("endTimeInput").value || "21:00";
+        const countPerDay = parseInt(document.getElementById("countInput").value || "3", 10);
+        const minIntervalHours = parseInt(document.getElementById("intervalInput").value || "3", 10);
+
+        if (!characterId) {
+            alert("캐릭터 ID는 필수입니다.");
+            return;
+        }
+        if (!displayName) {
+            alert("표시 이름을 입력해 주세요.");
+            return;
+        }
+
+        const body = {
+            userId,
+            characterId,
+            displayName,
+            personality,
+            voiceType,
+            profileImageUrl,
+            periodStartDate,
+            periodEndDate,
+            startTime,
+            endTime,
+            countPerDay,
+            minIntervalHours,
+        };
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/characters`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error("create character failed:", res.status, txt);
+                alert("캐릭터 생성/수정 실패: " + res.status);
+                return;
+            }
+            const data = await res.json();
+            console.log("character saved:", data);
+            alert("캐릭터가 저장되었습니다.");
+            await loadCharacters();
+        } catch (e) {
+            console.error(e);
+            alert("캐릭터 저장 중 오류가 발생했습니다.");
+        }
+    }
+
+    async function loadCharacters() {
+        const userId = document.getElementById("myUserIdInput").value.trim();
+        const listEl = document.getElementById("charList");
+
+        if (!userId) {
+            listEl.innerHTML = "<div class='small-text'>먼저 내 userId 를 입력해 주세요.</div>";
+            return;
+        }
+
+        listEl.innerHTML = "불러오는 중...";
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/characters?userId=${encodeURIComponent(userId)}`);
+            if (!res.ok) {
+                listEl.innerHTML = "목록을 불러오지 못했습니다.";
+                return;
+            }
+            const arr = await res.json();
+            if (arr.length === 0) {
+                listEl.innerHTML = "<div class='small-text'>등록된 캐릭터가 없습니다.</div>";
+                return;
+            }
+
+            listEl.innerHTML = "";
+            arr.forEach((c) => {
+                const item = document.createElement("div");
+                item.className = "char-item";
+                item.onclick = () => onSelectCharacter(c);
+
+                const nameDiv = document.createElement("div");
+                nameDiv.className = "char-name";
+                nameDiv.textContent = c.displayName || c.characterId;
+
+                const idDiv = document.createElement("div");
+                idDiv.className = "char-id";
+                idDiv.textContent = `ID: ${c.characterId}`;
+
+                const persDiv = document.createElement("div");
+                persDiv.className = "char-personality";
+                persDiv.textContent = c.personality || "";
+
+                item.appendChild(nameDiv);
+                item.appendChild(idDiv);
+                item.appendChild(persDiv);
+
+                listEl.appendChild(item);
+            });
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = "오류가 발생했습니다.";
+        }
+    }
+
+    async function onSelectCharacter(c) {
+        const userId = document.getElementById("myUserIdInput").value.trim();
+        if (!userId) {
+            alert("먼저 내 userId 를 입력해 주세요.");
+            return;
+        }
+
+        const roomId = `${userId}:${c.characterId}`;
+
+        document.getElementById("chatTitleMain").textContent =
+            c.displayName || c.characterId;
+        document.getElementById("chatTitleSub").textContent =
+            `roomId: ${roomId} · 기간: ${c.periodStartDate || "?"} ~ ${c.periodEndDate || "?"}`;
+
+        document.getElementById("chatInput").disabled = false;
+        document.getElementById("sendBtn").disabled = false;
+        document.getElementById("scheduleBtn").disabled = false;
+
+        connectWebSocket(() => {
+            subscribeRoom(roomId);
+        });
+
+        await loadHistory(roomId);
+    }
+
+    async function onShowSchedule() {
+        if (!currentRoomId) {
+            alert("먼저 캐릭터를 선택해 주세요.");
+            return;
+        }
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/chat/${currentRoomId}/schedule`);
+            if (!res.ok) {
+                alert("스케줄을 불러오지 못했습니다.");
+                return;
+            }
+            const txt = await res.text();
+            console.log("schedule:", txt);
+            alert("콘솔에서 오늘 스케줄 JSON을 확인하세요.\n(개발자 도구 → Console)");
+        } catch (e) {
+            console.error(e);
+            alert("스케줄 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+    function onChatInputKey(e) {
+        if (e.key === "Enter") {
+            onSendMessage();
+        }
+    }
+
+    function onSendMessage() {
+        if (!currentRoomId) {
+            alert("먼저 캐릭터를 선택해 주세요.");
+            return;
+        }
+        if (!stompClient || !stompClient.connected) {
+            alert("WebSocket 연결이 아직 준비되지 않았습니다.");
+            return;
+        }
+        const input = document.getElementById("chatInput");
+        const text = input.value.trim();
+        if (!text) return;
+
+        const myName = document.getElementById("myNameInput").value || "나";
+
+        const payload = {
+            roomId: currentRoomId,
+            senderId: "user",
+            senderName: myName,
+            content: text,
+        };
+
+        stompClient.send(`/pub/chat/${currentRoomId}`, {}, JSON.stringify(payload));
+        input.value = "";
+    }
+
+    window.addEventListener("load", () => {
+        // 처음엔 userId 입력을 안 했을 수 있으니,
+        // loadCharacters()는 사용자가 버튼 누를 때 실행해도 됨.
+    });
+</script>
+</body>
+</html>
