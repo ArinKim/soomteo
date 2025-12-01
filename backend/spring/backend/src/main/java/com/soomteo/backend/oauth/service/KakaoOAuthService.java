@@ -39,6 +39,14 @@ public class KakaoOAuthService {
      * 인가 코드로 액세스 토큰 요청
      */
     public KakaoTokenResponse getAccessToken(String code) {
+        // 기존 기본 redirectUri를 사용하는 기존 동작 유지
+        return getAccessToken(code, this.redirectUri);
+    }
+
+    /**
+     * 인가 코드로 액세스 토큰 요청 (redirectUri를 명시적으로 전달할 수 있음)
+     */
+    public KakaoTokenResponse getAccessToken(String code, String usedRedirectUri) {
         String url = "https://kauth.kakao.com/oauth/token";
 
         HttpHeaders headers = new HttpHeaders();
@@ -48,7 +56,7 @@ public class KakaoOAuthService {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);
-        params.add("redirect_uri", redirectUri);
+        params.add("redirect_uri", usedRedirectUri);
         params.add("code", code);
         params.add("client_secret", clientSecret);
 
