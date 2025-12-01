@@ -17,20 +17,21 @@ public class ChatService {
     @Transactional
     public void handleUserMessage(ChatMessage message) {
 
+        // 1) 유저 메시지 세팅
         message.setType(ChatMessage.MessageType.USER);
 
         if (message.getTimestamp() == null) {
             message.setTimestamp(System.currentTimeMillis());
         }
 
-        // 유저 메시지 DB 저장
+        // 2) 유저 메시지 DB 저장
         chatHistoryService.saveMessage(message);
 
-        // 유저 메시지 먼저 브로드캐스트 (채팅방에서 실시간으로 바로 보이게)
+        // 3) 유저 메시지 먼저 브로드캐스트
         String dest = "/sub/chat/room/" + message.getRoomId();
         messagingTemplate.convertAndSend(dest, message);
 
-        // Upstage 호출해서 AI 답장 생성
+        // 4) ai-server(FAST API) 호출해서 AI 답장 생성
         ChatMessage aiReply;
         try {
             aiReply = chatAiService.sendToUpstage(
@@ -39,7 +40,7 @@ public class ChatService {
                     message.getContent()
             );
         } catch (Exception e) {
-            // Upstage 호출 실패해도 서비스 안 죽게 방어
+            // ai-server 호출 실패해도 서비스 안 죽게 방어
             e.printStackTrace();
             aiReply = ChatMessage.builder()
                     .roomId(message.getRoomId())
@@ -50,10 +51,10 @@ public class ChatService {
                     .build();
         }
 
-        // AI 답장 DB에 저장
+        // 5) AI 답장 DB에 저장
         chatHistoryService.saveMessage(aiReply);
 
-        // AI 답장 브로드캐스트
+        // 6) AI 답장 브로드캐스트
         messagingTemplate.convertAndSend(dest, aiReply);
     }
 }
