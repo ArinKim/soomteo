@@ -1,6 +1,7 @@
 package com.soomteo.backend.oauth.controller;
 
 import com.soomteo.backend.oauth.dto.IdTokenPayload;
+import com.soomteo.backend.oauth.dto.MobileLoginRequest;
 import com.soomteo.backend.oauth.dto.KakaoTokenResponse;
 import com.soomteo.backend.oauth.dto.KakaoUserInfoResponse;
 import com.soomteo.backend.oauth.service.KakaoOAuthService;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestBody;
+import com.soomteo.backend.oauth.dto.MobileCodeRequest;
 
 @Controller
 @RequiredArgsConstructor
@@ -206,6 +209,111 @@ public class OAuthController {
         } catch (Exception e) {
             System.err.println("로그아웃 실패: " + e.getMessage());
             return "로그아웃 실패: " + e.getMessage();
+        }
+    }
+
+    /**
+     * 모바일 클라이언트에서 전달받은 액세스 토큰을 사용하여 서버에서 로그인/회원가입 처리
+     * (모바일 앱이 직접 카카오 SDK로 액세스 토큰을 얻어 서버로 전달하는 경우 사용)
+     */
+    @PostMapping("/api/v1/auth/kakao/mobile")
+    @ResponseBody
+    public Object kakaoMobileLogin(@RequestBody MobileLoginRequest req, HttpServletResponse response) {
+        try {
+            String accessToken = req.getAccessToken();
+            String refreshToken = req.getRefreshToken();
+            Integer refreshTokenExpiresIn = req.getRefreshTokenExpiresIn();
+
+            if (accessToken == null || accessToken.isEmpty()) {
+                return "accessToken is required";
+            }
+
+            // 1. 사용자 정보 조회
+            KakaoUserInfoResponse kakaoUser = kakaoOAuthService.getUserInfo(accessToken);
+
+            // 2. DB에 회원가입 또는 로그인 처리 (모바일에서는 refresh token이 선택적일 수 있음)
+            User user = userService.loginOrRegister(kakaoUser, refreshToken, refreshTokenExpiresIn);
+
+            // 3. 응답용 JSON 구성 및 쿠키 설정(옵션)
+            Cookie accessTokenCookie = new Cookie("kakao_access_token", accessToken);
+            accessTokenCookie.setHttpOnly(false);
+            accessTokenCookie.setPath("/");
+            // do not set maxAge here because token lifetime may not be known on server side
+            response.addCookie(accessTokenCookie);
+
+            Cookie userIdCookie = new Cookie("user_id", String.valueOf(user.getId()));
+            userIdCookie.setHttpOnly(false);
+            userIdCookie.setPath("/");
+            response.addCookie(userIdCookie);
+
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("userId", user.getId());
+            result.put("kakaoId", user.getKakaoId());
+            result.put("nickname", user.getNickname());
+            result.put("email", getValueOrDefault(user.getEmail(), "미제공"));
+            result.put("profileImage", user.getProfileImageUrl());
+
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("모바일 로그인 실패: " + e.getMessage());
+            return "모바일 로그인 실패: " + e.getMessage();
+        }
+    }
+
+    /**
+     * 모바일 클라이언트에서 전달하는 인가 코드(code)를 받아 서버에서 액세스 토큰으로 교환하고 로그인 처리 후 JSON으로 반환합니다.
+     * 이 방식은 모바일 앱이 브라우저 또는 AuthSession으로 Kakao 인증을 수행하여 code를 받고, 서버에 code를 전달하여 안전하게 토큰을 교환할 때 사용합니다.
+     */
+    @PostMapping("/api/v1/auth/kakao/mobile/code")
+    @ResponseBody
+    public Object kakaoMobileLoginWithCode(@RequestBody MobileCodeRequest req, HttpServletResponse response) {
+        try {
+            String code = req.getCode();
+
+            if (code == null || code.isEmpty()) {
+                return "code is required";
+            }
+
+                // 서버에서 인가 코드를 토큰으로 교환
+                String usedRedirectUri = req.getRedirectUri() != null && !req.getRedirectUri().isEmpty()
+                    ? req.getRedirectUri()
+                    : this.kakaoRedirectUri;
+
+                KakaoTokenResponse tokenResponse = kakaoOAuthService.getAccessToken(code, usedRedirectUri);
+
+            // 사용자 정보 조회
+            KakaoUserInfoResponse kakaoUser = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
+
+            // DB에 회원가입 또는 로그인 처리
+            User user = userService.loginOrRegister(kakaoUser, tokenResponse.getRefreshToken(), tokenResponse.getRefreshTokenExpiresIn());
+
+            // 응답 구성
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("userId", user.getId());
+            result.put("kakaoId", user.getKakaoId());
+            result.put("nickname", user.getNickname());
+            result.put("email", getValueOrDefault(user.getEmail(), "미제공"));
+            result.put("profileImage", user.getProfileImageUrl());
+
+            // (선택) 쿠키 저장
+            Cookie accessTokenCookie = new Cookie("kakao_access_token", tokenResponse.getAccessToken());
+            accessTokenCookie.setHttpOnly(false);
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(tokenResponse.getExpiresIn());
+            response.addCookie(accessTokenCookie);
+
+            Cookie userIdCookie = new Cookie("user_id", String.valueOf(user.getId()));
+            userIdCookie.setHttpOnly(false);
+            userIdCookie.setPath("/");
+            userIdCookie.setMaxAge(tokenResponse.getExpiresIn());
+            response.addCookie(userIdCookie);
+
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("모바일 코드 로그인 실패: " + e.getMessage());
+            return "모바일 코드 로그인 실패: " + e.getMessage();
         }
     }
 
