@@ -194,11 +194,25 @@ export function useChat(roomId, userId) {
         });
     };
 
-    const uiMessages = messages.map((m) => ({
-        ts: m.timestamp ?? Date.now(),
-        text: m.content ?? "",
-        from: m.senderId === userId ? "me" : "friend",
-    }));
+    const normalizeType = (m) => {
+        if (!m) return "";
+        const t = m.type ?? m.messageType;
+
+        if (typeof t === "string") return t.toUpperCase();
+        if (typeof t === "object" && t?.name) return t.name.toUpperCase();
+        return "";
+    };
+
+    const uiMessages = messages.map(m => {
+        const upper = normalizeType(m);
+        console.log("upper: ", upper);
+
+        return {
+            ts: m.timestamp ?? Date.now(),
+            text: m.content ?? "",
+            from: upper === "USER" ? "me" : "friend",
+        };
+    });
 
     return { messages, uiMessages, sendMessage, connected };
 }
