@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import {
     API_BASE_URL,
@@ -13,7 +14,9 @@ export function useChat(roomId, userId) {
     const [messages, setMessages] = useState([]);
     const [connected, setConnected] = useState(false);
 
-    // 1) 방이 바뀔 때 서버에서 기존 히스토리 불러오기
+    console.log("🔍 useChat 호출:", { roomId, userId });
+
+    // 히스토리 불러오기
     useEffect(() => {
         if (!roomId) {
             setMessages([]);
@@ -24,61 +27,51 @@ export function useChat(roomId, userId) {
         const fetchHistory = async () => {
             try {
                 const url = `${API_BASE_URL}/api/chat/history/${roomId}`;
-                console.log("[useChat] history url:", url);
+                console.log("[useChat] 📜 history url:", url);
 
                 const res = await fetch(url);
                 const text = await res.text();
-                console.log("[useChat] history raw:", res.status, text);
+                console.log("[useChat] 📜 history:", res.status, text);
 
-                if (!res.ok) {
-                    throw new Error(`history fetch failed: ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`history fetch failed: ${res.status}`);
 
                 const data = text ? JSON.parse(text) : [];
-
-                // 🔥 여기만 수정
                 setMessages((prev) => {
-                    // 1) 아직 아무 메시지도 없다면 → 그냥 히스토리로 초기화
-                    if (!prev || prev.length === 0) {
-                        return data;
-                    }
-
-                    // 2) 이미 로컬(혹은 STOMP)로 쌓인 메시지가 있다면 → 히스토리와 merge
-                    const keyOf = (m) =>
-                        `${m.timestamp}-${m.senderId}-${m.content}`;
-
+                    if (!prev || prev.length === 0) return data;
+                    const keyOf = (m) => `${m.timestamp}-${m.senderId}-${m.content}`;
                     const existingKeys = new Set(prev.map(keyOf));
                     const merged = [...prev];
-
                     for (const m of data) {
                         const key = keyOf(m);
-                        if (!existingKeys.has(key)) {
-                            merged.push(m);
-                        }
+                        if (!existingKeys.has(key)) merged.push(m);
                     }
-
-                    // 시간 순으로 정렬 (선택)
                     merged.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     return merged;
                 });
             } catch (e) {
-                console.warn("[useChat] history load error:", e);
-                setMessages((prev) => prev ?? []);
+                console.warn("[useChat] ❌ history error:", e);
+                setMessages([]);
             }
         };
 
         fetchHistory();
     }, [roomId]);
 
-
-    // 2) STOMP 연결 & 구독
+    // STOMP 연결
     useEffect(() => {
-        if (!roomId) {
+        if (!roomId || !userId) {
+            console.log("[STOMP] ⚠️ roomId/userId 없음");
             setConnected(false);
             return;
         }
 
-        // 이전 구독/클라이언트 정리
+        console.log("========================================");
+        console.log("[STOMP] 🚀🚀🚀 연결 시작");
+        console.log("roomId:", roomId);
+        console.log("userId:", userId);
+        console.log("WS_BASE_URL:", WS_BASE_URL);
+        console.log("========================================");
+
         if (subscriptionRef.current) {
             subscriptionRef.current.unsubscribe();
             subscriptionRef.current = null;
@@ -86,65 +79,82 @@ export function useChat(roomId, userId) {
         if (clientRef.current) {
             try {
                 clientRef.current.deactivate();
-            } catch (e) {
-                console.warn("[STOMP] deactivate error:", e);
-            }
+            } catch (e) {}
             clientRef.current = null;
         }
 
-        const client = new Client({
-            webSocketFactory: () => new WebSocket(WS_BASE_URL),
+        let rawFrameCount = 0;
+
+            const client = new Client({
+            // brokerURL: WS_BASE_URL,  // 제거
+            webSocketFactory: () => new SockJS(WS_BASE_URL), // WS_BASE_URL 예: "http://10.0.2.2:8080/ws-stomp"
             reconnectDelay: 5000,
             debug: (str) => console.log("[STOMP DEBUG]", str),
-            onConnect: () => {
-                console.log("[STOMP] connected");
+            
+            debug: (str) => {
+                console.log("[STOMP DEBUG]", str);
+            },
+            
+            onConnect: (frame) => {
+                console.log("========================================");
+                console.log("[STOMP] ✅✅✅ onConnect 호출됨!");
+                console.log("========================================");
                 setConnected(true);
 
                 if (subscriptionRef.current) {
                     subscriptionRef.current.unsubscribe();
                 }
 
-                const sub = client.subscribe(
-                    `${STOMP_SUB_PREFIX}/chat/room/${roomId}`,
-                    (frame) => {
-                        try {
-                            const body = JSON.parse(frame.body);
-                            console.log("[STOMP] received:", body);
+                const destination = `${STOMP_SUB_PREFIX}/chat/room/${roomId}`;
+                console.log("[STOMP] 📡 구독:", destination);
 
-                            setMessages((prev) => {
-                                const keyOf = (m) =>
-                                    `${m.timestamp}-${m.senderId}-${m.content}`;
-                                const incomingKey = keyOf(body);
+                const sub = client.subscribe(destination, (frame) => {
+                    try {
+                        const body = JSON.parse(frame.body);
+                        console.log("[STOMP] 📨 메시지:", body);
 
-                                if (prev.some((m) => keyOf(m) === incomingKey)) {
-                                    // 이미 있는 메시지면 추가하지 않음
-                                    return prev;
-                                }
-                                return [...prev, body];
-                            });
-                        } catch (e) {
-                            console.warn("[STOMP] invalid message:", e);
-                        }
+                        setMessages((prev) => {
+                            const keyOf = (m) => `${m.timestamp}-${m.senderId}-${m.content}`;
+                            const incomingKey = keyOf(body);
+                            if (prev.some((m) => keyOf(m) === incomingKey)) return prev;
+                            return [...prev, body];
+                        });
+                    } catch (e) {
+                        console.warn("[STOMP] ❌ 파싱 에러:", e);
                     }
-                );
-
+                });
 
                 subscriptionRef.current = sub;
+                console.log("[STOMP] ✅ 구독 완료");
             },
+            
             onStompError: (frame) => {
-                console.error("[STOMP ERROR]", frame.headers["message"], frame.body);
+                console.error("========================================");
+                console.error("[STOMP ERROR] ❌❌❌");
+                console.error("headers:", frame.headers);
+                console.error("body:", frame.body);
+                console.error("========================================");
+                setConnected(false);
             },
+            
             onWebSocketError: (event) => {
-                console.error("[WS ERROR]", event.message || event);
+                console.error("[WS ERROR] ❌", event);
+                setConnected(false);
+            },
+            
+            onDisconnect: () => {
+                console.log("[STOMP] 🔌 onDisconnect");
+                setConnected(false);
             },
         });
 
+        console.log("[STOMP] 🎬 client.activate() 호출");
         client.activate();
         clientRef.current = client;
 
         return () => {
+            console.log("[STOMP] 🧹 cleanup");
             setConnected(false);
-
             if (subscriptionRef.current) {
                 subscriptionRef.current.unsubscribe();
                 subscriptionRef.current = null;
@@ -152,19 +162,16 @@ export function useChat(roomId, userId) {
             if (clientRef.current) {
                 try {
                     clientRef.current.deactivate();
-                } catch (e) {
-                    console.warn("[STOMP] deactivate error:", e);
-                }
+                } catch (e) {}
                 clientRef.current = null;
             }
         };
-    }, [roomId]);
+    }, [roomId, userId]);
 
     const sendMessage = (content) => {
         const trimmed = (content || "").trim();
         if (!trimmed) return;
 
-        // 1) 먼저 로컬 UI에 추가 (optimistic)
         const msg = {
             roomId,
             senderId: userId,
@@ -173,20 +180,13 @@ export function useChat(roomId, userId) {
             timestamp: Date.now(),
         };
 
+        console.log("[sendMessage] 📤", msg);
         setMessages((prev) => [...prev, msg]);
 
-        // 2) STOMP 연결 상태에 따라 서버로 전송
-        if (!clientRef.current) {
-            console.warn("[sendMessage] no STOMP client");
+        if (!clientRef.current || !clientRef.current.connected) {
+            console.warn("[sendMessage] ⚠️ STOMP 미연결");
             return;
         }
-
-        if (!clientRef.current.connected) {
-            console.warn("[sendMessage] STOMP not connected yet. Only local UI updated.");
-            return;
-        }
-
-        console.log("[sendMessage] publish:", msg);
 
         clientRef.current.publish({
             destination: `${STOMP_PUB_PREFIX}/chat.send`,
@@ -197,16 +197,13 @@ export function useChat(roomId, userId) {
     const normalizeType = (m) => {
         if (!m) return "";
         const t = m.type ?? m.messageType;
-
         if (typeof t === "string") return t.toUpperCase();
         if (typeof t === "object" && t?.name) return t.name.toUpperCase();
         return "";
     };
 
-    const uiMessages = messages.map(m => {
+    const uiMessages = messages.map((m) => {
         const upper = normalizeType(m);
-        console.log("upper: ", upper);
-
         return {
             ts: m.timestamp ?? Date.now(),
             text: m.content ?? "",

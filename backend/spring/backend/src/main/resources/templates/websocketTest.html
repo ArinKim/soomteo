@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+<h1>WebSocket Test</h1>
+<div id="status">연결 중...</div>
+<div id="log"></div>
+
+<script>
+    const client = new StompJs.Client({
+        brokerURL: 'ws://localhost:8080/ws-stomp',
+        debug: function (str) {
+            console.log('STOMP:', str);
+            document.getElementById('log').innerHTML += '<br>' + str;
+        },
+        onConnect: function (frame) {
+            console.log('✅ Connected:', frame);
+            document.getElementById('status').innerHTML = '✅ 연결됨!';
+            document.getElementById('status').style.color = 'green';
+        },
+        onStompError: function (frame) {
+            console.error('❌ STOMP Error:', frame);
+            document.getElementById('status').innerHTML = '❌ 에러!';
+            document.getElementById('status').style.color = 'red';
+        },
+        onWebSocketError: function (event) {
+            console.error('❌ WebSocket Error:', event);
+        }
+    });
+
+    client.activate();
+</script>
+</body>
+</html>

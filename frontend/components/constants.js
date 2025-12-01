@@ -97,16 +97,21 @@ import { Platform } from "react-native";
 
 // - 시뮬레이터에서만 돌리면: "localhost"
 // - 실기(폰)에서 돌리면: 맥의 IP (예: "192.168.0.5")
-const LOCAL_PC_IP = "localhost"; // 필요하면 192.168.x.x 로 변경
+const LOCAL_PC_IP = "10.0.2.2"; // 필요하면 192.168.x.x 로 변경
+const LOCAL_MAC_IP = "localhost";
 
-const DEV_HOST =
-    Platform.OS === "android"
-        ? LOCAL_PC_IP
-        : LOCAL_PC_IP;
+const DEV_HOST = LOCAL_PC_IP;
+    // Platform.OS === "android"
+    //     ? LOCAL_PC_IP
+    //     : LOCAL_MAC_IP;
 
-export const API_BASE_URL = `http://${DEV_HOST}:8080`;
-export const WS_BASE_URL  = `ws://${DEV_HOST}:8080/ws-stomp`;
+export const API_BASE_URL = "http://10.0.2.2:8080";
+export const WS_BASE_URL  = `http://${DEV_HOST}:8080/ws-stomp`;
 
 export const STOMP_SUB_PREFIX = "/sub";
 export const STOMP_PUB_PREFIX = "/pub";
+
+// 기본 채팅 스레드 초기값 — 앱이 시작할 때 undefined로 인한 ReferenceError를 방지합니다.
+// 예시로 하나의 demo 채팅을 채우려면 아래 형식을 사용하세요.
+export const INITIAL_CHATS = {};
 

@@ -17,6 +17,7 @@ public class ChatRestController {
 
     @GetMapping("/history/{roomId}")
     public List<ChatMessage> getHistory(@PathVariable String roomId) {
+        System.out.println("roomId = " + roomId);
         return chatHistoryService.findAllByRoomId(roomId);
     }
 }

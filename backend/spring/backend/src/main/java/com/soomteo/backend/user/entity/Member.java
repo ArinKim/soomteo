@@ -2,7 +2,6 @@ package com.soomteo.backend.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "users")
@@ -19,7 +18,6 @@ public class Member {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -37,6 +35,9 @@ public class Member {
 
     @Column(length = 255)
     private String profileImageUrl;
+
+    @Column(length = 255)
+    private String statusMessage;
 
     // statusMessage removed (no longer used)
 
