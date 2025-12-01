@@ -19,11 +19,15 @@ app.get("/tts", async (req, res) => {
     const pitch = parseFloat(req.query.pitch) || 0.0; // -20.0 ~ 20.0
     const volumeGainDb = parseFloat(req.query.volume) || 0.0; // -96.0 ~ 16.0
 
+    // 음성 이름에서 languageCode 추출 (예: ko-KR-Standard-D → ko-KR)
+    const languageCode =
+      voiceName.match(/^([a-z]{2}-[A-Z]{2})/)?.[1] || "ko-KR";
+
     const request = {
       input: { text },
       voice: {
-        languageCode: "ko-KR",
-        name: voiceName, // 특정 음성 선택 (Neural2, WaveNet, Standard 등)
+        languageCode: languageCode, // 음성 모델의 언어 코드
+        name: voiceName, // 특정 음성 선택 (Neural2, WaveNet, Standard, Chirp3 등)
       },
       audioConfig: {
         audioEncoding: "MP3",

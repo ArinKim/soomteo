@@ -9,25 +9,9 @@ import {
 } from "react-native";
 import * as Speech from "expo-speech";
 import SystemSetting from "react-native-system-setting";
-import { PERSONALITY_OPTIONS } from "./constants";
+import { PERSONALITY_OPTIONS, PERSONA_CONFIG } from "./constants";
 import { styles as appStyles } from "./styles";
 import { playTts } from "../lib/TtsPlayer";
-
-// 페르소나별 음성 파라미터 매핑 (voice, pitch, rate 등)
-const PERSONA_VOICE_CONFIG = {
-  엄마: { voice: "ko-KR-Standard-B", pitch: 1.05, rate: 0.95 },
-  친척: { voice: "ko-KR-Standard-D", pitch: 0.95, rate: 1.0 },
-  "아는 삼촌/이모": { voice: "ko-KR-Standard-D", pitch: 0.9, rate: 0.98 },
-  "또래 친구": { voice: "ko-KR-Neural2-A", pitch: 1.15, rate: 1.05 },
-};
-
-// 페르소나별로 선호하는 음성 이름 키워드(디바이스 설치된 TTS 엔진에 따라 상이)
-const PERSONA_VOICE_MATCHERS = {
-  엄마: ["female", "woman", "Korean", "Ko", "TTS"],
-  친척: ["neutral", "standard", "Korean"],
-  "아는 삼촌/이모": ["male", "man", "Korean"],
-  "또래 친구": ["child", "young", "teen", "Korean"],
-};
 
 export default function TTSScreen({ activeFriend }) {
   // activeFriend가 있을 경우 해당 친구의 페르소나 사용, 없으면 선택 모드
@@ -35,12 +19,7 @@ export default function TTSScreen({ activeFriend }) {
   const [persona, setPersona] = useState(initialPersona);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [text, setText] = useState("");
-  const [voices, setVoices] = useState([]);
   const [speaking, setSpeaking] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState(null);
-  const nativeModuleReady =
-    !!Speech.maxSpeechInputLength && Speech.maxSpeechInputLength > 0;
-  const [forceEnable, setForceEnable] = useState(false);
   const [volume, setVolume] = useState(0.5);
 
   // 현재 시스템 볼륨 로드
@@ -50,76 +29,26 @@ export default function TTSScreen({ activeFriend }) {
     });
   }, []);
 
-  // 사용 가능한 음성 목록 로드
-  useEffect(() => {
-    let mounted = true;
-    Speech.getAvailableVoicesAsync()
-      .then((list) => {
-        if (!mounted) return;
-        // 한국어 우선 필터
-        const koVoices = list.filter((v) => v.language?.startsWith("ko"));
-        setVoices(list);
-        // 페르소나에 맞는 음성 우선 선택
-        const sel = selectVoiceForPersona(
-          persona,
-          koVoices.length ? koVoices : list
-        );
-        setSelectedVoice(sel);
-      })
-      .catch(() => {
-        setVoices([]);
-        setSelectedVoice(null);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   // 현재 페르소나에 따른 음성 옵션 계산
   const voiceParams = useMemo(() => {
-    return PERSONA_VOICE_CONFIG[persona] || { pitch: 1.0, rate: 1.0 };
+    const config = PERSONA_CONFIG[persona];
+    if (!config) {
+      return {
+        voice: "ko-KR-Standard-A",
+        pitch: 0.0,
+        rate: 1.0,
+        prompt: "",
+        target: "공통",
+      };
+    }
+    return {
+      voice: config.voice,
+      pitch: config.pitch,
+      rate: config.rate,
+      prompt: config.prompt,
+      target: config.target,
+    };
   }, [persona]);
-
-  // 페르소나 변경 시 음성도 재선택 시도
-  useEffect(() => {
-    if (!voices || voices.length === 0) return;
-    const koVoices = voices.filter((v) => v.language?.startsWith("ko"));
-    const sel = selectVoiceForPersona(
-      persona,
-      koVoices.length ? koVoices : voices
-    );
-    setSelectedVoice(sel);
-  }, [persona, voices]);
-
-  function selectVoiceForPersona(p, list) {
-    if (!list || list.length === 0) return null;
-    const keywords = PERSONA_VOICE_MATCHERS[p] || [];
-    // 이름/식별자/품질로 매칭 시도
-    const nameMatch = list.find((v) =>
-      keywords.some((k) =>
-        (v.name || "").toLowerCase().includes(k.toLowerCase())
-      )
-    );
-    if (nameMatch) return nameMatch;
-    const idMatch = list.find((v) =>
-      keywords.some((k) =>
-        (v.identifier || "").toLowerCase().includes(k.toLowerCase())
-      )
-    );
-    if (idMatch) return idMatch;
-    // 품질 선호: female/neutral/male 순 등 임의 기준
-    const female = list.find((v) =>
-      (v.name || "").toLowerCase().includes("female")
-    );
-    if (p === "엄마" && female) return female;
-    const male = list.find((v) =>
-      (v.name || "").toLowerCase().includes("male")
-    );
-    if (p === "아는 삼촌/이모" && male) return male;
-    // 기본: 한국어 첫 번째 또는 첫 음성
-    const ko = list.find((v) => v.language?.startsWith("ko"));
-    return ko || list[0];
-  }
 
   const handleSpeak = async () => {
     const s = text.trim();
@@ -140,7 +69,7 @@ export default function TTSScreen({ activeFriend }) {
   };
 
   const handleStop = () => {
-    Speech.stop();
+    // Server TTS는 중지 기능이 없으므로 상태만 리셋
     setSpeaking(false);
   };
 
@@ -170,23 +99,6 @@ export default function TTSScreen({ activeFriend }) {
     <View style={[appStyles.container, localStyles.container]}>
       <ScrollView contentContainerStyle={localStyles.scrollInner}>
         <Text style={localStyles.title}>AI 음성 출력</Text>
-        {!nativeModuleReady && (
-          <View style={localStyles.warningBox}>
-            <Text style={localStyles.warningTitle}>음성 모듈 준비 안 됨</Text>
-            <Text style={localStyles.warningText}>
-              새로 설치된 TTS 네이티브 모듈이 아직 로드되지 않았습니다.{"\n"}
-              아래 명령으로 재빌드 후 다시 실행하세요:{"\n"}npx expo run:android
-            </Text>
-            <TouchableOpacity
-              style={[localStyles.actionBtn, localStyles.forceBtn]}
-              onPress={() => setForceEnable((v) => !v)}
-            >
-              <Text style={localStyles.forceBtnText}>
-                {forceEnable ? "강제 사용 해제" : "강제 사용(시험)"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         <TouchableOpacity
           style={localStyles.personaSelector}
@@ -229,12 +141,14 @@ export default function TTSScreen({ activeFriend }) {
         )}
 
         <View style={localStyles.paramBox}>
-          <Text style={localStyles.paramTitle}>음성 파라미터</Text>
-          <Text style={localStyles.paramText}>Pitch: {voiceParams.pitch}</Text>
+          <Text style={localStyles.paramTitle}>음성 설정</Text>
+          <Text style={localStyles.paramText}>대상: {voiceParams.target}</Text>
+          <Text style={localStyles.paramText}>음성: {voiceParams.voice}</Text>
           <Text style={localStyles.paramText}>Rate: {voiceParams.rate}</Text>
-          {selectedVoice && (
-            <Text style={localStyles.paramVoice}>
-              Voice: {selectedVoice.name} ({selectedVoice.language})
+          <Text style={localStyles.paramText}>Pitch: {voiceParams.pitch}</Text>
+          {voiceParams.prompt && (
+            <Text style={localStyles.paramPrompt}>
+              어투: {voiceParams.prompt}
             </Text>
           )}
         </View>
@@ -262,7 +176,7 @@ export default function TTSScreen({ activeFriend }) {
 
         <Text style={localStyles.inputLabel}>출력할 텍스트</Text>
         <TextInput
-          value={text}
+          value={text == "" ? "안녕? 오늘 하루는 어때?" : text}
           onChangeText={setText}
           placeholder="여기에 텍스트를 입력하세요"
           multiline
@@ -344,6 +258,12 @@ const localStyles = StyleSheet.create({
   paramTitle: { fontSize: 13, fontWeight: "700", marginBottom: 6 },
   paramText: { fontSize: 12, color: "#374151", marginBottom: 2 },
   paramVoice: { fontSize: 11, color: "#6b7280", marginTop: 4 },
+  paramPrompt: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginTop: 6,
+    fontStyle: "italic",
+  },
   inputLabel: { fontSize: 13, fontWeight: "700", marginBottom: 6 },
   textArea: {
     minHeight: 140,
