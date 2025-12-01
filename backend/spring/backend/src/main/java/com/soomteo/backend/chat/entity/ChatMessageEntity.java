@@ -2,6 +2,7 @@ package com.soomteo.backend.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chat_message")
@@ -14,14 +15,23 @@ public class ChatMessageEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 채팅 기록 아이디
+    private Long id; // 채팅 기록 아이디 (PK)
 
-    private String roomId; // 채팅방 아이디
-    private String senderId; // 보낸 사람 아이디
+    @Column(name = "user_id", nullable = false)
+    private Long userId; // 사용자 아이디
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "friend_id", nullable = false)
+    private Long friendId; // AI 친구 아이디
+
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content; // 채팅 내용
 
-    private String type;      // "USER", "ASSIST", "SYSTEM"
-    private Long timestamp;
+    @Column(name = "created_at", nullable = false)
+    private java.time.LocalDateTime createdAt; // 채팅 시간
+
+    @Column(name = "channel_type", nullable = false)
+    private String channelType;   // CHAT / CALL -> 채팅 혹은 전화
+
+    @Column(name = "message_type", nullable = false)
+    private String messageType;   // USER / AI
 }

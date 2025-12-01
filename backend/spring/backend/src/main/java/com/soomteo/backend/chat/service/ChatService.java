@@ -16,6 +16,13 @@ public class ChatService {
 
     @Transactional
     public void handleUserMessage(ChatMessage message) {
+
+        message.setType(ChatMessage.MessageType.USER);
+
+        if (message.getTimestamp() == null) {
+            message.setTimestamp(System.currentTimeMillis());
+        }
+
         // 유저 메시지 DB 저장
         chatHistoryService.saveMessage(message);
 
@@ -38,7 +45,7 @@ public class ChatService {
                     .roomId(message.getRoomId())
                     .senderId("AI")
                     .content("지금은 내가 답장을 잘 못하겠어 ㅠ 잠깐 뒤에 다시 얘기하자!!")
-                    .type(ChatMessage.MessageType.ASSIST)
+                    .type(ChatMessage.MessageType.AI)
                     .timestamp(System.currentTimeMillis())
                     .build();
         }
