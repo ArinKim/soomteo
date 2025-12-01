@@ -13,12 +13,12 @@ import { PERSONALITY_OPTIONS } from "./constants";
 import { styles as appStyles } from "./styles";
 import { playTts } from "../lib/TtsPlayer";
 
-// 페르소나별 음성 파라미터 매핑 (pitch, rate 등)
+// 페르소나별 음성 파라미터 매핑 (voice, pitch, rate 등)
 const PERSONA_VOICE_CONFIG = {
-  엄마: { pitch: 1.05, rate: 0.95 },
-  친척: { pitch: 0.95, rate: 1.0 },
-  "아는 삼촌/이모": { pitch: 0.9, rate: 0.98 },
-  "또래 친구": { pitch: 1.15, rate: 1.05 },
+  엄마: { voice: "ko-KR-Standard-B", pitch: 1.05, rate: 0.95 },
+  친척: { voice: "ko-KR-Standard-D", pitch: 0.95, rate: 1.0 },
+  "아는 삼촌/이모": { voice: "ko-KR-Standard-D", pitch: 0.9, rate: 0.98 },
+  "또래 친구": { voice: "ko-KR-Neural2-A", pitch: 1.15, rate: 1.05 },
 };
 
 // 페르소나별로 선호하는 음성 이름 키워드(디바이스 설치된 TTS 엔진에 따라 상이)
@@ -126,7 +126,12 @@ export default function TTSScreen({ activeFriend }) {
     if (!s) return;
     setSpeaking(true);
     try {
-      await playTts(s);
+      // 페르소나에 따른 음성 옵션 전달
+      await playTts(s, {
+        voice: voiceParams.voice,
+        rate: voiceParams.rate,
+        pitch: voiceParams.pitch,
+      });
     } catch (e) {
       console.error("playTts error", e);
     } finally {
