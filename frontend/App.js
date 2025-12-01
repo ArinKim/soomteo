@@ -1,3 +1,13 @@
+import { TextEncoder, TextDecoder } from "text-encoding";
+
+if (typeof global.TextEncoder === "undefined") {
+  global.TextEncoder = TextEncoder;
+}
+if (typeof global.TextDecoder === "undefined") {
+  global.TextDecoder = TextDecoder;
+}
+
+
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -375,11 +385,8 @@ export default function App() {
       <ChatModalView
         visible={!!activeChatFriend}
         activeChatFriend={activeChatFriend}
-        chats={chats}
         closeChatSession={closeChatSession}
-        chatInput={chatInput}
-        setChatInput={setChatInput}
-        sendMessage={sendMessage}
+        userId={identifier || "local-user"}
       />
 
       <FriendManagementModal
