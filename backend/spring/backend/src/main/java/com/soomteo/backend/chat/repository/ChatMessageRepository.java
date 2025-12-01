@@ -7,7 +7,9 @@ import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, Long> {
 
-    List<ChatMessageEntity> findByRoomIdOrderByTimestampAsc(String roomId);
+    // 채팅 목록 가져오기
+    List<ChatMessageEntity> findByUserIdAndFriendIdAndChannelTypeOrderByCreatedAtAsc(Long userId, Long friendId, String channelType);
 
-    List<ChatMessageEntity> findTop50ByRoomIdOrderByTimestampDesc(String roomId);
+    // 최신 50개 채팅 내용 가져오기
+    List<ChatMessageEntity> findTop50ByUserIdAndFriendIdAndChannelTypeOrderByCreatedAtDesc(Long userId, Long friendId, String channelType);
 }

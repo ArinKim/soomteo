@@ -122,7 +122,7 @@ public class ChatAiService {
                 .roomId(roomId)
                 .senderId("AI")
                 .content(assistantReply)
-                .type(ChatMessage.MessageType.ASSIST)
+                .type(ChatMessage.MessageType.AI)
                 .timestamp(System.currentTimeMillis())
                 .build();
     }
