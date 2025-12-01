@@ -42,7 +42,7 @@ const INITIAL_CHATS = {
 
 // API 설정
 // const API_BASE_URL = "http://10.50.1.97:8082";
-const API_BASE_URL = "http://10.0.2.2:8080";
+const API_BASE_URL = "http://10.0.2.2:8080  ";
 
 export default function App() {
   const [screen, setScreen] = useState("landing");
