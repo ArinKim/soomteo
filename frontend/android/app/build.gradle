@@ -106,7 +106,8 @@ def jscFlavor = 'org.webkit:android-jsc:+'
  */
 def reactNativeArchitectures() {
     def value = project.getProperties().get("reactNativeArchitectures")
-    return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+    // Restrict architectures to 64-bit only to avoid CMake failure on armeabi-v7a
+    return value ? value.split(",") : ["arm64-v8a", "x86_64"]
 }
 
 android {
@@ -124,6 +125,10 @@ android {
         targetSdkVersion 34
         versionCode 1
         versionName "0.1.0"
+        ndk {
+            // Only build the ABIs we actually ship
+            abiFilters "arm64-v8a", "x86_64"
+        }
     }
 
     splits {

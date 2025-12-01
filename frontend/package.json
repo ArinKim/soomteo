@@ -20,6 +20,7 @@
     "react-native-system-setting": "^1.7.6"
   },
   "devDependencies": {
+    "@react-native-community/cli": "latest",
     "@babel/core": "^7.20.0"
   }
 }
