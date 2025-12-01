@@ -13,9 +13,9 @@ app.use(express.json());
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   // host: process.env.DB_HOST || 'mysql', -> 추후 연결
-  user: process.env.DB_USER || 'soomter',
-  password: process.env.DB_PASS || 'soomter',
-  database: process.env.DB_NAME || 'soomter',
+  user: process.env.DB_USER || 'soomteo',
+  password: process.env.DB_PASS || 'soomteo',
+  database: process.env.DB_NAME || 'soomteo',
 });
 
 // 루트 API
