@@ -112,13 +112,14 @@ def reactNativeArchitectures() {
 android {
     ndkVersion rootProject.ext.ndkVersion
 
+
     // Use explicit SDK numbers to avoid issues when rootProject.ext is not set
     // Default to 33 (AGP 7.4.1 was tested up to compileSdk 33)
     compileSdkVersion Integer.parseInt(findProperty('android.compileSdkVersion') ?: "33")
-
     namespace 'com.anonymous.soomteoapp'
     defaultConfig {
         applicationId 'com.anonymous.soomteoapp'
+
         // expo requires minSdkVersion 24+; raise to match library requirements
         minSdkVersion 24
         targetSdkVersion 34
