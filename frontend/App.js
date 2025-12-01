@@ -5,7 +5,9 @@ import {
   Text,
   TouchableOpacity,
   StatusBar,
+  Platform,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import LandingScreen from "./components/LandingScreen";
 import LoginScreen from "./components/LoginScreen";
 import FriendsListView from "./components/FriendsListView";
@@ -20,6 +22,7 @@ import CallingScreen from "./components/CallingScreen";
 import TTSScreen from "./components/TTSScreen";
 import { styles } from "./components/styles";
 import { PERSONALITY_OPTIONS, AVATAR_COLORS } from "./components/constants";
+import * as FileSystem from "expo-file-system";
 
 const INITIAL_FRIENDS = [
   { id: "1", name: "Be:U", status: "디폴트 친구", avatarColor: "#4c5ff2ff" },
@@ -89,6 +92,7 @@ export default function App() {
   const [newFriendAvatarColor, setNewFriendAvatarColor] = useState(
     AVATAR_COLORS[0]
   );
+  const [newFriendImageUri, setNewFriendImageUri] = useState(null);
   const [editingFriendId, setEditingFriendId] = useState(null);
   const [personalityDropdownOpen, setPersonalityDropdownOpen] = useState(false);
   const [friendFormTitle, setFriendFormTitle] = useState("친구 추가");
@@ -105,10 +109,17 @@ export default function App() {
   const [profileFormAvatarColor, setProfileFormAvatarColor] = useState(
     userProfile.avatarColor
   );
+  const [profileFormImageUri, setProfileFormImageUri] = useState(null);
   const [profileEditVisible, setProfileEditVisible] = useState(false);
 
   const [friendManagementVisible, setFriendManagementVisible] = useState(false);
   const [friendFormVisible, setFriendFormVisible] = useState(false);
+
+  const API_BASE =
+    Platform.OS === "android"
+      ? "http://10.0.2.2:3001"
+      : "http://localhost:3001";
+  const USER_ID = 1; // TODO: 실제 로그인 사용자 ID로 대체
 
   function handleLogin() {
     if (
@@ -194,11 +205,54 @@ export default function App() {
     }
   }
 
+  async function pickFriendImage() {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("사진 라이브러리 접근 권한이 필요합니다.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setNewFriendImageUri(result.assets[0].uri);
+    }
+  }
+
+  async function pickProfileImage() {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("사진 라이브러리 접근 권한이 필요합니다.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setProfileFormImageUri(result.assets[0].uri);
+    }
+  }
+
   function resetFriendForm() {
     setNewFriendName("");
     setNewFriendStatus("새로운 AI 친구입니다.");
     setNewFriendPersonality(PERSONALITY_OPTIONS[0]);
     setNewFriendAvatarColor(AVATAR_COLORS[0]);
+    setNewFriendImageUri(null);
     setEditingFriendId(null);
     setPersonalityDropdownOpen(false);
   }
@@ -210,6 +264,7 @@ export default function App() {
       setNewFriendStatus(friend.status);
       setNewFriendPersonality(friend.personality || PERSONALITY_OPTIONS[0]);
       setNewFriendAvatarColor(friend.avatarColor || AVATAR_COLORS[0]);
+      setNewFriendImageUri(friend.imageUri || null);
     } else {
       resetFriendForm();
     }
@@ -232,6 +287,7 @@ export default function App() {
                   : "새로운 AI 친구입니다.",
                 avatarColor: newFriendAvatarColor,
                 personality: newFriendPersonality,
+                imageUri: newFriendImageUri || f.imageUri,
               }
             : f
         )
@@ -245,6 +301,7 @@ export default function App() {
           : "새로운 AI 친구입니다.",
         avatarColor: newFriendAvatarColor,
         personality: newFriendPersonality,
+        imageUri: newFriendImageUri,
       };
       setFriends((prev) => [nf, ...prev]);
       setChats((prev) => ({ ...prev, [nf.id]: [] }));
@@ -274,15 +331,38 @@ export default function App() {
     setProfileFormName(userProfile.name);
     setProfileFormStatus(userProfile.status);
     setProfileFormAvatarColor(userProfile.avatarColor);
+    setProfileFormImageUri(userProfile.imageUri || null);
     setProfileEditVisible(true);
   }
 
-  function handleSaveUserProfile() {
+  async function uploadProfileImageIfNeeded() {
+    try {
+      if (!profileFormImageUri) return;
+      const base64 = await FileSystem.readAsStringAsync(profileFormImageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      await fetch(`${API_BASE}/api/user/profile-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: USER_ID,
+          imageBase64: base64,
+          mimeType: "image/jpeg",
+        }),
+      });
+    } catch (e) {
+      console.warn("프로필 이미지 업로드 실패", e);
+    }
+  }
+
+  async function handleSaveUserProfile() {
     setUserProfile({
       name: profileFormName,
       status: profileFormStatus,
       avatarColor: profileFormAvatarColor,
+      imageUri: profileFormImageUri || userProfile.imageUri,
     });
+    await uploadProfileImageIfNeeded();
     setProfileEditVisible(false);
   }
 
@@ -451,6 +531,8 @@ export default function App() {
           resetFriendForm();
         }}
         headerTitle={friendFormTitle}
+        imageUri={newFriendImageUri}
+        onPickImage={pickFriendImage}
       />
 
       <ProfileEditModal
@@ -463,6 +545,8 @@ export default function App() {
         setStatus={setProfileFormStatus}
         setAvatarColor={setProfileFormAvatarColor}
         onSave={handleSaveUserProfile}
+        imageUri={profileFormImageUri}
+        onPickImage={pickProfileImage}
       />
     </SafeAreaView>
   );

@@ -1,12 +1,14 @@
 {
   "scripts": {
-    "start": "node node/tts.js"
+    "start": "node node/server.js",
+    "api": "node node/server.js"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.4.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "google-tts-api": "^2.0.2"
+    "google-tts-api": "^2.0.2",
+    "mysql2": "^3.15.3"
   }
 }

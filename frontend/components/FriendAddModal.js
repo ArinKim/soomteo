@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from "react-native";
 import { styles } from "./styles";
 import { PERSONALITY_OPTIONS, AVATAR_COLORS } from "./constants";
@@ -29,6 +30,8 @@ export default function FriendAddModal({
   editingFriendId,
   onDeleteFriend,
   headerTitle = "친구 추가",
+  imageUri,
+  onPickImage,
 }) {
   return (
     <Modal
@@ -106,6 +109,29 @@ export default function FriendAddModal({
               ))}
             </View>
           )}
+          <Text style={{ fontWeight: "700", marginBottom: 10, marginTop: 12 }}>
+            프로필 이미지
+          </Text>
+          <TouchableOpacity
+            style={styles.imagePickerButton}
+            onPress={onPickImage}
+          >
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.profileImage} />
+            ) : (
+              <View
+                style={[
+                  styles.profileImagePlaceholder,
+                  { backgroundColor: newFriendAvatarColor },
+                ]}
+              >
+                <Text style={styles.profileImagePlaceholderText}>
+                  이미지 선택
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <Text style={{ fontWeight: "700", marginBottom: 10, marginTop: 12 }}>
             프로필 색상
           </Text>

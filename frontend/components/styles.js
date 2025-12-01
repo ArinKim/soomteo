@@ -527,4 +527,31 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
+  imagePickerButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "#ddd",
+  },
+  profileImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#ddd",
+    borderStyle: "dashed",
+  },
+  profileImagePlaceholderText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });

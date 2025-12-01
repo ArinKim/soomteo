@@ -5,6 +5,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { styles } from "./styles";
 
@@ -31,16 +32,23 @@ export default function ProfileModalView({
         </View>
         <View style={{ padding: 20 }}>
           <View style={{ alignItems: "center", marginBottom: 20 }}>
-            <View
-              style={[
-                styles.avatarLarge,
-                { backgroundColor: selectedFriend.avatarColor || "#ddd" },
-              ]}
-            >
-              <Text style={{ fontSize: 28, fontWeight: "700" }}>
-                {selectedFriend.name.charAt(0)}
-              </Text>
-            </View>
+            {selectedFriend.imageUri ? (
+              <Image
+                source={{ uri: selectedFriend.imageUri }}
+                style={styles.avatarLarge}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatarLarge,
+                  { backgroundColor: selectedFriend.avatarColor || "#ddd" },
+                ]}
+              >
+                <Text style={{ fontSize: 28, fontWeight: "700" }}>
+                  {selectedFriend.name.charAt(0)}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={{ fontWeight: "700" }}>이름</Text>
           <Text style={{ marginBottom: 12 }}>{selectedFriend.name}</Text>

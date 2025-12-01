@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, TouchableOpacity, View, Text } from "react-native";
+import { FlatList, TouchableOpacity, View, Text, Image } from "react-native";
 import { styles } from "./styles";
 
 export default function FriendsListView({
@@ -17,14 +17,23 @@ export default function FriendsListView({
           style={[styles.friendRow, styles.userRow]}
           onPress={openSelfEditor}
         >
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: userProfile.avatarColor },
-            ]}
-          >
-            <Text style={styles.avatarText}>{userProfile.name.charAt(0)}</Text>
-          </View>
+          {userProfile.imageUri ? (
+            <Image
+              source={{ uri: userProfile.imageUri }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                { backgroundColor: userProfile.avatarColor },
+              ]}
+            >
+              <Text style={styles.avatarText}>
+                {userProfile.name.charAt(0)}
+              </Text>
+            </View>
+          )}
           <View style={styles.friendInfo}>
             <Text style={styles.friendName}>{userProfile.name}</Text>
             <Text style={styles.friendSubtitle}>{userProfile.status}</Text>
@@ -37,14 +46,18 @@ export default function FriendsListView({
           style={styles.friendRow}
           onPress={() => openProfile(item)}
         >
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: item.avatarColor || "#ddd" },
-            ]}
-          >
-            <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-          </View>
+          {item.imageUri ? (
+            <Image source={{ uri: item.imageUri }} style={styles.avatar} />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                { backgroundColor: item.avatarColor || "#ddd" },
+              ]}
+            >
+              <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+            </View>
+          )}
           <View style={styles.friendInfo}>
             <Text style={styles.friendName}>{item.name}</Text>
             <Text style={styles.friendSubtitle}>{item.status}</Text>

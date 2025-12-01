@@ -1,5 +1,14 @@
 import React from "react";
-import { Modal, SafeAreaView, View, Text, TouchableOpacity, TextInput, ScrollView } from "react-native";
+import {
+  Modal,
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Image,
+} from "react-native";
 import { styles } from "./styles";
 import { AVATAR_COLORS } from "./constants";
 
@@ -13,6 +22,8 @@ export default function ProfileEditModal({
   setStatus,
   setAvatarColor,
   onSave,
+  imageUri,
+  onPickImage,
 }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -26,9 +37,41 @@ export default function ProfileEditModal({
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={{ fontWeight: "700", marginBottom: 10 }}>이름</Text>
           <TextInput value={name} onChangeText={setName} style={styles.input} />
-          <Text style={{ fontWeight: "700", marginBottom: 10 }}>상태 메세지</Text>
-          <TextInput value={status} onChangeText={setStatus} style={styles.input} />
-          <Text style={{ fontWeight: "700", marginBottom: 10 }}>프로필 색상</Text>
+          <Text style={{ fontWeight: "700", marginBottom: 10 }}>
+            상태 메세지
+          </Text>
+          <TextInput
+            value={status}
+            onChangeText={setStatus}
+            style={styles.input}
+          />
+
+          <Text style={{ fontWeight: "700", marginBottom: 10, marginTop: 12 }}>
+            프로필 이미지
+          </Text>
+          <TouchableOpacity
+            style={styles.imagePickerButton}
+            onPress={onPickImage}
+          >
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.profileImage} />
+            ) : (
+              <View
+                style={[
+                  styles.profileImagePlaceholder,
+                  { backgroundColor: avatarColor },
+                ]}
+              >
+                <Text style={styles.profileImagePlaceholderText}>
+                  이미지 선택
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <Text style={{ fontWeight: "700", marginBottom: 10, marginTop: 12 }}>
+            프로필 색상
+          </Text>
           <View style={styles.colorPickerRow}>
             {AVATAR_COLORS.map((color) => (
               <TouchableOpacity
@@ -40,11 +83,16 @@ export default function ProfileEditModal({
                 ]}
                 onPress={() => setAvatarColor(color)}
               >
-                {avatarColor === color && <Text style={styles.colorSwatchText}>✓</Text>}
+                {avatarColor === color && (
+                  <Text style={styles.colorSwatchText}>✓</Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={[styles.primaryBtn, styles.primaryBtnFull]} onPress={onSave}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, styles.primaryBtnFull]}
+            onPress={onSave}
+          >
             <Text style={styles.primaryBtnText}>저장</Text>
           </TouchableOpacity>
         </ScrollView>

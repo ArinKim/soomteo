@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Image,
 } from "react-native";
 import { styles } from "./styles";
 
@@ -36,21 +37,35 @@ export default function ChatModalView({
           </TouchableOpacity>
         </View>
         <View style={styles.chatProfileHeader}>
-          <View
-            style={[
-              styles.avatarLarge,
-              {
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: activeChatFriend.avatarColor || "#ddd",
-              },
-            ]}
-          >
-            <Text style={{ fontSize: 24, fontWeight: "700" }}>
-              {activeChatFriend.name.charAt(0)}
-            </Text>
-          </View>
+          {activeChatFriend.imageUri ? (
+            <Image
+              source={{ uri: activeChatFriend.imageUri }}
+              style={[
+                styles.avatarLarge,
+                {
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                },
+              ]}
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatarLarge,
+                {
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: activeChatFriend.avatarColor || "#ddd",
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 24, fontWeight: "700" }}>
+                {activeChatFriend.name.charAt(0)}
+              </Text>
+            </View>
+          )}
           <View style={{ marginTop: 12, alignItems: "center" }}>
             <Text style={styles.chatProfileName}>{activeChatFriend.name}</Text>
             <Text style={{ color: "#6b7280" }}>
@@ -72,18 +87,26 @@ export default function ChatModalView({
                 msg.from === "me" ? styles.myBubbleRow : styles.friendBubbleRow,
               ]}
             >
-              {msg.from === "friend" && (
-                <View
-                  style={[
-                    styles.avatarTiny,
-                    { backgroundColor: activeChatFriend.avatarColor || "#ddd" },
-                  ]}
-                >
-                  <Text style={styles.avatarTinyText}>
-                    {activeChatFriend.name.charAt(0)}
-                  </Text>
-                </View>
-              )}
+              {msg.from === "friend" &&
+                (activeChatFriend.imageUri ? (
+                  <Image
+                    source={{ uri: activeChatFriend.imageUri }}
+                    style={styles.avatarTiny}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.avatarTiny,
+                      {
+                        backgroundColor: activeChatFriend.avatarColor || "#ddd",
+                      },
+                    ]}
+                  >
+                    <Text style={styles.avatarTinyText}>
+                      {activeChatFriend.name.charAt(0)}
+                    </Text>
+                  </View>
+                ))}
               <View
                 style={[
                   styles.bubble,

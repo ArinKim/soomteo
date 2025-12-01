@@ -1,6 +1,37 @@
 import { Audio } from "expo-av";
+import { Platform, NativeModules } from "react-native";
 
-const BASE_URL = process.env.EXPO_PUBLIC_TTS_URL || "http://10.0.2.2:3000";
+function resolveBaseUrl() {
+  // 1) Explicit override via env
+  const envUrl = process.env.EXPO_PUBLIC_TTS_URL;
+  if (envUrl) return envUrl;
+
+  // 2) Derive host from Metro bundle URL (works in dev for emulator and real device)
+  try {
+    const scriptURL = NativeModules?.SourceCode?.scriptURL || "";
+    // e.g., http://10.0.2.2:8002/index.bundle?platform=android
+    // or http://192.168.0.12:8002/index.bundle?platform=android
+    // or http://localhost:8002/index.bundle?platform=android (some setups)
+    const match = scriptURL.match(/^https?:\/\/([^/:]+)(?::\d+)?\//);
+    if (match && match[1]) {
+      const host = match[1];
+      if (
+        Platform.OS === "android" &&
+        (host === "localhost" || host === "127.0.0.1")
+      ) {
+        return "http://10.0.2.2:3001";
+      }
+      return `http://${host}:3001`;
+    }
+  } catch {}
+
+  // 3) Fallback by platform
+  return Platform.OS === "android"
+    ? "http://10.0.2.2:3001"
+    : "http://localhost:3001";
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export async function playTts(text, options = {}) {
   let sound;
