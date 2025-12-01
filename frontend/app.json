@@ -11,9 +11,6 @@
       "ios",
       "android"
     ],
-    "plugins": [
-      "expo-speech-recognition"
-    ],
     "android": {
       "package": "com.anonymous.soomteoapp",
       "permissions": [

@@ -4,6 +4,7 @@ apply plugin: "com.facebook.react"
 import com.android.build.OutputFile
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def reactNativePath = "$projectRoot/node_modules/react-native"
 def expoDebuggableVariants = ['debug']
 // Override `debuggableVariants` for expo-updates debugging
 if (System.getenv('EX_UPDATES_NATIVE_DEBUG') == "1") {
@@ -17,10 +18,19 @@ if (System.getenv('EX_UPDATES_NATIVE_DEBUG') == "1") {
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
+
+
+
 react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
-    reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
-    hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
+    // 그냥 index.js(또는 실제 엔트리 파일)로 고정
+    entryFile = file("$projectRoot/index.js")
+
+    // node_modules/react-native 고정 경로 사용
+    reactNativeDir = file(reactNativePath)
+
+    // hermes도 react-native 밑의 sdks 경로로 고정
+    hermesCommand = "$reactNativePath/sdks/hermesc/%OS-BIN%/hermesc"
+
     debuggableVariants = expoDebuggableVariants
 
     /* Folders */
@@ -233,5 +243,5 @@ dependencies {
     }
 }
 
-apply from: new File(["node", "--print", "require.resolve('@react-native-community/cli-platform-android/package.json')"].execute(null, rootDir).text.trim(), "../native_modules.gradle");
+apply from: file("$projectRoot/node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
 applyNativeModulesAppBuildGradle(project)

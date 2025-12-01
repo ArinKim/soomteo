@@ -21,6 +21,7 @@ import ChatListView from "./components/ChatListView";
 import FriendManagementModal from "./components/FriendManagementModal";
 import FriendAddModal from "./components/FriendAddModal";
 import ProfileEditModal from "./components/ProfileEditModal";
+import CallingScreen from "./components/CallingScreen";
 
 import { styles } from "./components/styles";
 import { API_BASE_URL, AVATAR_COLORS } from "./components/constants";
@@ -67,6 +68,7 @@ export default function App() {
 
   // 채팅 중인 친구
   const [activeChatFriend, setActiveChatFriend] = useState(null);
+  const [callingFriend, setCallingFriend] = useState(null);
 
   // 프로필 / 모달 관련
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -78,20 +80,18 @@ export default function App() {
   });
 
   // 친구 관리 모달
-  const [friendManagementVisible, setFriendManagementVisible] =
-      useState(false);
+  const [friendManagementVisible, setFriendManagementVisible] = useState(false);
   const [friendFormVisible, setFriendFormVisible] = useState(false);
 
   // 친구 추가/수정 모달용 상태
   const [newFriendName, setNewFriendName] = useState("");
   const [newFriendGender, setNewFriendGender] = useState("FEMALE"); // 'FEMALE' or 'MALE'
   const [newFriendType, setNewFriendType] = useState("친구");
-  const [newFriendProfileImageUrl, setNewFriendProfileImageUrl] =
-      useState("");
+  const [newFriendProfileImageUrl, setNewFriendProfileImageUrl] = useState("");
   const [newFriendStatus, setNewFriendStatus] = useState("");
   const [newFriendPrompt, setNewFriendPrompt] = useState("");
   const [newFriendAvatarColor, setNewFriendAvatarColor] = useState(
-      AVATAR_COLORS[0]
+    AVATAR_COLORS[0]
   );
 
   // 안부 메시지 스케줄
@@ -143,8 +143,8 @@ export default function App() {
   async function handleLogin() {
     // 테스트 로그인
     if (
-        (identifier === "0000" || identifier === "0000@example.com") &&
-        password === "0000"
+      (identifier === "0000" || identifier === "0000@example.com") &&
+      password === "0000"
     ) {
       const fixedUserId = 1; // DB의 users.id = 1
       setUserId(fixedUserId);
@@ -165,12 +165,31 @@ export default function App() {
   // =====================================================================
   async function loadFriends(uid) {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/friends/${uid}`);
+      const url = `${API_BASE_URL}/api/friends/${uid}`;
+      const res = await fetch(url);
       if (!res.ok) {
-        console.warn("loadFriends failed:", res.status);
+        const text = await res.text().catch(() => "<no body>");
+        console.warn("loadFriends failed", {
+          status: res.status,
+          url,
+          body: text,
+        });
+        alert(`친구 목록을 불러오지 못했습니다 (status: ${res.status}).`);
         return;
       }
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        const text = await res.text().catch(() => "<no body>");
+        console.warn("loadFriends: JSON 파싱 실패", {
+          url,
+          body: text,
+          error: e,
+        });
+        alert("친구 목록 응답 파싱에 실패했습니다.");
+        return;
+      }
 
       // FriendDto 가 아래 필드를 내려준다고 가정:
       // { id, name, statusMessage, profileImageUrl, characterTypeId,
@@ -190,14 +209,17 @@ export default function App() {
         startTime: f.startTime || "",
         endTime: f.endTime || "",
         count:
-            typeof f.count === "number" || typeof f.count === "string"
-                ? String(f.count)
-                : "3",
+          typeof f.count === "number" || typeof f.count === "string"
+            ? String(f.count)
+            : "3",
       }));
 
       setFriends(mapped);
     } catch (e) {
       console.warn("loadFriends error:", e);
+      alert(
+        "친구 목록을 불러오는 중 오류가 발생했습니다. 서버 주소(API_BASE_URL)와 네트워크를 확인하세요."
+      );
     }
   }
 
@@ -222,6 +244,17 @@ export default function App() {
 
   function closeProfile() {
     setSelectedFriend(null);
+  }
+
+  // 통화 시작/종료
+  function handleCall(friend) {
+    setCallingFriend(friend);
+    // 프로필 모달 닫기
+    setSelectedFriend(null);
+  }
+
+  function handleEndCall() {
+    setCallingFriend(null);
   }
 
   // =====================================================================
@@ -291,8 +324,8 @@ export default function App() {
     }
 
     const characterTypeId = resolveCharacterTypeId(
-        newFriendType,
-        newFriendGender
+      newFriendType,
+      newFriendGender
     );
 
     const parsedCount = parseInt(newFriendCount, 10);
@@ -317,12 +350,12 @@ export default function App() {
       if (editingFriendId) {
         // 수정
         const res = await fetch(
-            `${API_BASE_URL}/api/friends/${editingFriendId}`,
-            {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            }
+          `${API_BASE_URL}/api/friends/${editingFriendId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
         );
 
         if (!res.ok) {
@@ -333,30 +366,30 @@ export default function App() {
         const updated = await res.json();
 
         setFriends((prev) =>
-            prev.map((f) =>
-                f.id === updated.id
-                    ? {
-                      ...f,
-                      name: updated.name,
-                      status: updated.statusMessage || "",
-                      avatarColor: newFriendAvatarColor,
-                      characterTypeId: updated.characterTypeId,
-                      prompt: updated.prompt,
-                      gender: updated.gender || newFriendGender,
-                      typeLabel: updated.typeLabel || newFriendType,
-                      profileImageUrl: updated.profileImageUrl || "",
-                      startDate: updated.startDate || "",
-                      endDate: updated.endDate || "",
-                      startTime: updated.startTime || "",
-                      endTime: updated.endTime || "",
-                      count:
-                          typeof updated.count === "number" ||
-                          typeof updated.count === "string"
-                              ? String(updated.count)
-                              : "3",
-                    }
-                    : f
-            )
+          prev.map((f) =>
+            f.id === updated.id
+              ? {
+                  ...f,
+                  name: updated.name,
+                  status: updated.statusMessage || "",
+                  avatarColor: newFriendAvatarColor,
+                  characterTypeId: updated.characterTypeId,
+                  prompt: updated.prompt,
+                  gender: updated.gender || newFriendGender,
+                  typeLabel: updated.typeLabel || newFriendType,
+                  profileImageUrl: updated.profileImageUrl || "",
+                  startDate: updated.startDate || "",
+                  endDate: updated.endDate || "",
+                  startTime: updated.startTime || "",
+                  endTime: updated.endTime || "",
+                  count:
+                    typeof updated.count === "number" ||
+                    typeof updated.count === "string"
+                      ? String(updated.count)
+                      : "3",
+                }
+              : f
+          )
         );
       } else {
         // 추가
@@ -388,10 +421,10 @@ export default function App() {
           startTime: created.startTime || "",
           endTime: created.endTime || "",
           count:
-              typeof created.count === "number" ||
-              typeof created.count === "string"
-                  ? String(created.count)
-                  : "3",
+            typeof created.count === "number" ||
+            typeof created.count === "string"
+              ? String(created.count)
+              : "3",
         };
 
         setFriends((prev) => [...prev, uiFriend]);
@@ -436,185 +469,195 @@ export default function App() {
 
   if (screen === "landing") {
     return (
-        <LandingScreen theme={theme} onLoginPress={() => setScreen("login")} />
+      <LandingScreen theme={theme} onLoginPress={() => setScreen("login")} />
     );
   }
 
   if (screen === "login") {
     return (
-        <LoginScreen
-            theme={theme}
-            identifier={identifier}
-            password={password}
-            setIdentifier={setIdentifier}
-            setPassword={setPassword}
-            onLogin={handleLogin}
-            onBack={() => setScreen("landing")}
-        />
+      <LoginScreen
+        theme={theme}
+        identifier={identifier}
+        password={password}
+        setIdentifier={setIdentifier}
+        setPassword={setPassword}
+        onLogin={handleLogin}
+        onBack={() => setScreen("landing")}
+      />
     );
   }
 
   return (
-      <SafeAreaView style={[styles.container, styles.appBg]}>
-        <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, styles.appBg]}>
+      <StatusBar barStyle="dark-content" />
 
-        {/* HEADER */}
-        <View style={styles.appHeader}>
-          <Text style={styles.appHeaderTitle}>
-            {tab === "friends" ? "친구" : tab === "chats" ? "채팅" : "설정"}
-          </Text>
+      {/* HEADER */}
+      <View style={styles.appHeader}>
+        <Text style={styles.appHeaderTitle}>
+          {tab === "friends" ? "친구" : tab === "chats" ? "채팅" : "설정"}
+        </Text>
 
-          <TouchableOpacity onPress={handleLogout} style={styles.smallBtn}>
-            <Text>로그아웃</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.smallBtn}>
+          <Text>로그아웃</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* TAB CONTENT */}
-        <View style={styles.content}>
-          {tab === "friends" && (
-              <FriendsListView
-                  friends={friends}
-                  userProfile={userProfile}
-                  openProfile={openFriendProfile}
-                  openSelfEditor={() => setProfileEditVisible(true)}
-              />
-          )}
-
-          {tab === "chats" && (
-              <ChatListView friends={friends} openChatSession={openChatSession} />
-          )}
-
-          {tab === "settings" && (
-              <SettingsView
-                  theme={theme}
-                  setTheme={setTheme}
-                  onOpenFriendManagement={() => setFriendManagementVisible(true)}
-                  onOpenAccount={() => alert("준비 중")}
-              />
-          )}
-        </View>
-
-        {/* TAB BAR */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-              style={styles.tabItem}
-              onPress={() => setTab("friends")}
-          >
-            <Text style={tab === "friends" ? styles.tabActive : undefined}>
-              친구
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-              style={styles.tabItem}
-              onPress={() => setTab("chats")}
-          >
-            <Text style={tab === "chats" ? styles.tabActive : undefined}>
-              채팅
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-              style={styles.tabItem}
-              onPress={() => setTab("settings")}
-          >
-            <Text style={tab === "settings" ? styles.tabActive : undefined}>
-              설정
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 프로필 모달 */}
-        <ProfileModalView
-            visible={!!selectedFriend}
-            selectedFriend={selectedFriend}
-            closeProfile={closeProfile}
-            handleStartChat={openChatSession}
-        />
-
-        {/* 채팅 모달 */}
-        <ChatModalView
-            visible={!!activeChatFriend}
-            activeChatFriend={activeChatFriend}
-            closeChatSession={closeChatSession}
-            userId={userId}
-        />
-
-        {/* 친구 관리 모달 */}
-        <FriendManagementModal
-            visible={friendManagementVisible}
+      {/* TAB CONTENT */}
+      <View style={styles.content}>
+        {tab === "friends" && (
+          <FriendsListView
             friends={friends}
-            onClose={() => setFriendManagementVisible(false)}
-            onEditFriend={(friend) => {
-              setFriendManagementVisible(false);
-              openFriendForm(friend, "친구 정보 수정");
-            }}
-            deleteFriend={(id) => {
-              handleDeleteFriendFromForm(id);
-            }}
-            onAddFriend={() => {
-              setFriendManagementVisible(false);
-              openFriendForm(null, "친구 추가");
-            }}
-        />
+            userProfile={userProfile}
+            openProfile={openFriendProfile}
+            openSelfEditor={() => setProfileEditVisible(true)}
+          />
+        )}
 
-        {/* 친구 추가/수정 모달 */}
-        <FriendAddModal
-            visible={friendFormVisible}
-            onClose={() => {
-              setFriendFormVisible(false);
-              resetFriendForm();
-            }}
-            newFriendName={newFriendName}
-            setNewFriendName={setNewFriendName}
-            newFriendGender={newFriendGender}
-            setNewFriendGender={setNewFriendGender}
-            newFriendType={newFriendType}
-            setNewFriendType={setNewFriendType}
-            newFriendProfileImageUrl={newFriendProfileImageUrl}
-            setNewFriendProfileImageUrl={setNewFriendProfileImageUrl}
-            newFriendStatus={newFriendStatus}
-            setNewFriendStatus={setNewFriendStatus}
-            newFriendPrompt={newFriendPrompt}
-            setNewFriendPrompt={setNewFriendPrompt}
-            newFriendAvatarColor={newFriendAvatarColor}
-            setNewFriendAvatarColor={setNewFriendAvatarColor}
-            newFriendStartDate={newFriendStartDate}
-            setNewFriendStartDate={setNewFriendStartDate}
-            newFriendEndDate={newFriendEndDate}
-            setNewFriendEndDate={setNewFriendEndDate}
-            newFriendStartTime={newFriendStartTime}
-            setNewFriendStartTime={setNewFriendStartTime}
-            newFriendEndTime={newFriendEndTime}
-            setNewFriendEndTime={setNewFriendEndTime}
-            newFriendCount={newFriendCount}
-            setNewFriendCount={setNewFriendCount}
-            handleSaveFriend={handleSaveFriend}
-            editingFriendId={editingFriendId}
-            onDeleteFriend={(id) => {
-              handleDeleteFriendFromForm(id);
-              setFriendFormVisible(false);
-              resetFriendForm();
-            }}
-            headerTitle={friendFormTitle}
-            genderOptions={GENDER_OPTIONS}
-            typeOptions={TYPE_OPTIONS}
-        />
+        {tab === "chats" && (
+          <ChatListView friends={friends} openChatSession={openChatSession} />
+        )}
 
-        {/* 내 프로필 편집 모달 (지금은 로컬 상태만 수정) */}
-        <ProfileEditModal
-            visible={profileEditVisible}
-            onClose={() => setProfileEditVisible(false)}
-            name={userProfile.name}
-            status={userProfile.status}
-            avatarColor={userProfile.avatarColor}
-            setName={(v) => setUserProfile((p) => ({ ...p, name: v }))}
-            setStatus={(v) => setUserProfile((p) => ({ ...p, status: v }))}
-            setAvatarColor={(v) =>
-                setUserProfile((p) => ({ ...p, avatarColor: v }))
-            }
-            onSave={() => setProfileEditVisible(false)}
+        {tab === "settings" && (
+          <SettingsView
+            theme={theme}
+            setTheme={setTheme}
+            onOpenFriendManagement={() => setFriendManagementVisible(true)}
+            onOpenAccount={() => alert("준비 중")}
+          />
+        )}
+      </View>
+
+      {/* TAB BAR */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => setTab("friends")}
+        >
+          <Text style={tab === "friends" ? styles.tabActive : undefined}>
+            친구
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => setTab("chats")}
+        >
+          <Text style={tab === "chats" ? styles.tabActive : undefined}>
+            채팅
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => setTab("settings")}
+        >
+          <Text style={tab === "settings" ? styles.tabActive : undefined}>
+            설정
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 프로필 모달 */}
+      <ProfileModalView
+        visible={!!selectedFriend}
+        selectedFriend={selectedFriend}
+        closeProfile={closeProfile}
+        handleCall={handleCall}
+        handleStartChat={openChatSession}
+      />
+
+      {/* 채팅 모달 */}
+      <ChatModalView
+        visible={!!activeChatFriend}
+        activeChatFriend={activeChatFriend}
+        closeChatSession={closeChatSession}
+        userId={userId}
+      />
+
+      {/* 통화 화면 (숨김 채팅 전송 포함) */}
+      {callingFriend && (
+        <CallingScreen
+          friend={callingFriend}
+          userId={userId}
+          onEndCall={handleEndCall}
         />
-      </SafeAreaView>
+      )}
+
+      {/* 친구 관리 모달 */}
+      <FriendManagementModal
+        visible={friendManagementVisible}
+        friends={friends}
+        onClose={() => setFriendManagementVisible(false)}
+        onEditFriend={(friend) => {
+          setFriendManagementVisible(false);
+          openFriendForm(friend, "친구 정보 수정");
+        }}
+        deleteFriend={(id) => {
+          handleDeleteFriendFromForm(id);
+        }}
+        onAddFriend={() => {
+          setFriendManagementVisible(false);
+          openFriendForm(null, "친구 추가");
+        }}
+      />
+
+      {/* 친구 추가/수정 모달 */}
+      <FriendAddModal
+        visible={friendFormVisible}
+        onClose={() => {
+          setFriendFormVisible(false);
+          resetFriendForm();
+        }}
+        newFriendName={newFriendName}
+        setNewFriendName={setNewFriendName}
+        newFriendGender={newFriendGender}
+        setNewFriendGender={setNewFriendGender}
+        newFriendType={newFriendType}
+        setNewFriendType={setNewFriendType}
+        newFriendProfileImageUrl={newFriendProfileImageUrl}
+        setNewFriendProfileImageUrl={setNewFriendProfileImageUrl}
+        newFriendStatus={newFriendStatus}
+        setNewFriendStatus={setNewFriendStatus}
+        newFriendPrompt={newFriendPrompt}
+        setNewFriendPrompt={setNewFriendPrompt}
+        newFriendAvatarColor={newFriendAvatarColor}
+        setNewFriendAvatarColor={setNewFriendAvatarColor}
+        newFriendStartDate={newFriendStartDate}
+        setNewFriendStartDate={setNewFriendStartDate}
+        newFriendEndDate={newFriendEndDate}
+        setNewFriendEndDate={setNewFriendEndDate}
+        newFriendStartTime={newFriendStartTime}
+        setNewFriendStartTime={setNewFriendStartTime}
+        newFriendEndTime={newFriendEndTime}
+        setNewFriendEndTime={setNewFriendEndTime}
+        newFriendCount={newFriendCount}
+        setNewFriendCount={setNewFriendCount}
+        handleSaveFriend={handleSaveFriend}
+        editingFriendId={editingFriendId}
+        onDeleteFriend={(id) => {
+          handleDeleteFriendFromForm(id);
+          setFriendFormVisible(false);
+          resetFriendForm();
+        }}
+        headerTitle={friendFormTitle}
+        genderOptions={GENDER_OPTIONS}
+        typeOptions={TYPE_OPTIONS}
+      />
+
+      {/* 내 프로필 편집 모달 (지금은 로컬 상태만 수정) */}
+      <ProfileEditModal
+        visible={profileEditVisible}
+        onClose={() => setProfileEditVisible(false)}
+        name={userProfile.name}
+        status={userProfile.status}
+        avatarColor={userProfile.avatarColor}
+        setName={(v) => setUserProfile((p) => ({ ...p, name: v }))}
+        setStatus={(v) => setUserProfile((p) => ({ ...p, status: v }))}
+        setAvatarColor={(v) =>
+          setUserProfile((p) => ({ ...p, avatarColor: v }))
+        }
+        onSave={() => setProfileEditVisible(false)}
+      />
+    </SafeAreaView>
   );
 }
