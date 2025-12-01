@@ -18,8 +18,7 @@ if (System.getenv('EX_UPDATES_NATIVE_DEBUG') == "1") {
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    // Use a stable entry file path to avoid empty-path errors when the node command fails
-    entryFile = file("../index.js")
+    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
     reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
     hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
     debuggableVariants = expoDebuggableVariants
@@ -112,16 +111,13 @@ def reactNativeArchitectures() {
 android {
     ndkVersion rootProject.ext.ndkVersion
 
-    // Use explicit SDK numbers to avoid issues when rootProject.ext is not set
-    // Default to 33 (AGP 7.4.1 was tested up to compileSdk 33)
-    compileSdkVersion Integer.parseInt(findProperty('android.compileSdkVersion') ?: "33")
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.soomteoapp'
+    namespace 'com.soomteo.app'
     defaultConfig {
-        applicationId 'com.anonymous.soomteoapp'
-        // expo requires minSdkVersion 24+; raise to match library requirements
-        minSdkVersion 24
-        targetSdkVersion 34
+        applicationId 'com.soomteo.app'
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "0.1.0"
     }

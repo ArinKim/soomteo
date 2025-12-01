@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.anonymous.soomteoapp">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.soomteo.app">
+
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -6,6 +8,7 @@
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -13,30 +16,64 @@
       <data android:scheme="https"/>
     </intent>
   </queries>
-  <queries>
-    <package android:name="com.google.android.googlequicksearchbox"/>
-    <intent>
-      <action android:name="android.speech.RecognitionService"/>
-    </intent>
-  </queries>
-  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:usesCleartextTraffic="true">
+
+  <application
+      android:name=".MainApplication"
+      android:label="@string/app_name"
+      android:icon="@mipmap/ic_launcher"
+      android:roundIcon="@mipmap/ic_launcher_round"
+      android:allowBackup="true"
+      android:theme="@style/AppTheme"
+      android:usesCleartextTraffic="true">
+
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="true"/>
     <meta-data android:name="expo.modules.updates.EXPO_SDK_VERSION" android:value="48.0.0"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATE_URL" android:value="https://exp.host/@anonymous/soomteo-app"/>
-    <activity android:name=".MainActivity" android:label="@string/app_name" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true">
+
+    <!-- MainActivity (앱 런처) -->
+    <activity
+        android:name=".MainActivity"
+        android:label="@string/app_name"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
+        android:launchMode="singleTask"
+        android:windowSoftInputMode="adjustResize"
+        android:theme="@style/Theme.App.SplashScreen"
+        android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
+
+      <!-- 앱 고유 스킴 (예: com.soomteo.app:// ) -->
       <intent-filter>
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="com.anonymous.soomteoapp"/>
+        <data android:scheme="com.soomteo.app"/>
       </intent-filter>
     </activity>
-    <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>
+
+    <!-- React dev settings (self-closed) -->
+    <activity
+        android:name="com.facebook.react.devsupport.DevSettingsActivity"
+        android:exported="false" />
+
+    <!-- Kakao AuthCodeHandlerActivity (한 번만 선언) -->
+    <activity
+        android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <!-- 주의: scheme은 "kakao{NATIVE_APP_KEY}"가 아니라 중괄호 없이 kakaoNATIVE_APP_KEY -->
+        <data
+            android:host="oauth"
+            android:scheme="kakao0359706448590fb07399b26bd5ceebe3" />
+      </intent-filter>
+    </activity>
+
   </application>
 </manifest>

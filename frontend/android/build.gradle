@@ -19,6 +19,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+          // Use configured kotlinVersion from gradle.properties when available.
+          // Fallback to 1.6.21 which is compatible with the AGP used here.
+          classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion ?: '1.6.21'}"
         classpath('com.android.tools.build:gradle:7.4.1')
         classpath('com.facebook.react:react-native-gradle-plugin')
     }

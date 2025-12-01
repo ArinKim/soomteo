@@ -1,3 +1,4 @@
 <resources>
-  <string name="app_name">soomteo-app</string>
+  <string name="app_name">Soomteo</string>
+  <string name="kakao_app_key">0359706448590fb07399b26bd5ceebe3</string>
 </resources>

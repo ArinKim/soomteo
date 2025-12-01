@@ -1,4 +1,4 @@
-package com.anonymous.soomteoapp;
+package com.soomteo.app;
 
 import android.app.Application;
 import android.content.res.Configuration;

@@ -1,31 +1,40 @@
 {
   "expo": {
-    "name": "soomteo-app",
+    "name": "Soomteo",
     "slug": "soomteo-app",
     "version": "0.1.0",
-    "sdkVersion": "48.0.0",
-    "ios": {
-      "deploymentTarget": "14.0"
-    },
     "platforms": [
       "ios",
       "android"
     ],
     "plugins": [
-      // "expo-speech-recognition"
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "nativeAppKey": "0359706448590fb07399b26bd5ceebe3",
+          "kakaoAppKey": "0359706448590fb07399b26bd5ceebe3",
+          "android": {
+            "packageName": "com.soomteo.app"
+          },
+          "ios": {
+            "bundleId": "com.soomteo.app"
+          }
+        }
+      ]
     ],
     "android": {
-      "package": "com.anonymous.soomteoapp",
+      "package": "com.soomteo.app",
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
     "ios": {
+      "deploymentTarget": "14.0",
+      "bundleIdentifier": "com.soomteo.app",
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
-      },
-      "bundleIdentifier": "com.anonymous.soomteoapp"
+        "NSSpeechRecognitionUsageDescription": "Soomteo needs speech recognition.",
+        "NSMicrophoneUsageDescription": "Soomteo needs microphone access."
+      }
     }
   }
 }
