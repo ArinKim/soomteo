@@ -8,20 +8,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "usersDetail")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class UsersDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,6 +38,11 @@ public class User {
 
     @Column
     private String thumbnailImageUrl;  // 썸네일 이미지 URL
+
+    @Setter
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private Member user; // reference to the main `users` table (app user)
 
     @Column
     private String ageRange;  // 연령대
@@ -93,6 +95,7 @@ public class User {
         if (gender != null) this.gender = gender;
         if (birthday != null) this.birthday = birthday;
         if (birthyear != null) this.birthyear = birthyear;
+        // when email is updated we won't auto-create a Member; linking happens in service/controller
     }
 
     // 로그인 시각 업데이트

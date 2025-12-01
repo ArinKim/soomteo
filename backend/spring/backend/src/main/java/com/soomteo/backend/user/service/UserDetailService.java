@@ -1,51 +1,56 @@
 package com.soomteo.backend.user.service;
 
 import com.soomteo.backend.oauth.dto.KakaoUserInfoResponse;
-import com.soomteo.backend.user.entity.User;
-import com.soomteo.backend.user.repository.UserRepository;
+import com.soomteo.backend.user.entity.UsersDetail;
+import com.soomteo.backend.user.repository.UserDetailRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
-    private final UserRepository userRepository;
+public class UserDetailService {
+    private final UserDetailRepository userDetailRepository;
 
     /**
      * 카카오 로그인: 회원가입 또는 로그인 처리
      */
     @Transactional
-    public User loginOrRegister(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
+    public UsersDetail loginOrRegister(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
         Long kakaoId = kakaoUser.getId();
 
-        return userRepository.findByKakaoId(kakaoId)
-                .map(user -> {
+        return userDetailRepository.findByKakaoId(kakaoId)
+                .map(usersDetail -> {
                     // 기존 회원: 정보 업데이트
-                    updateUserInfo(user, kakaoUser);
-                    user.updateLastLogin();
-                    user.updateRefreshToken(refreshToken, refreshTokenExpiresIn);  // 리프레시 토큰 저장
+                    updateUserInfo(usersDetail, kakaoUser);
+                    usersDetail.updateLastLogin();
+                    usersDetail.updateRefreshToken(refreshToken, refreshTokenExpiresIn);  // 리프레시 토큰 저장
 
-                    System.out.println("기존 회원 로그인: " + user.getNickname());
-                    return userRepository.save(user);
+
+                    System.out.println("기존 회원 로그인: " + usersDetail.getNickname());
+                    return userDetailRepository.save(usersDetail);
                 })
                 .orElseGet(() -> {
                     // 신규 회원: 회원가입
-                    User newUser = createUser(kakaoUser, refreshToken, refreshTokenExpiresIn);
+                    UsersDetail newUsersDetail = createUser(kakaoUser, refreshToken, refreshTokenExpiresIn);
 
-                    System.out.println("신규 회원 가입: " + newUser.getNickname());
-                    return userRepository.save(newUser);
+                    // Do not auto-create or link Member from Kakao login.
+                    // We intentionally leave the usersDetail.user null so client can perform general signup
+                    // (ensures Kakao flow goes through the same registration UI and linking step).
+
+                    System.out.println("신규 회원 가입: " + newUsersDetail.getNickname());
+                    return userDetailRepository.save(newUsersDetail);
                 });
     }
 
     /**
      * 리프레시 토큰 포함하여 사용자 생성
      */
-    private User createUser(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
+    private UsersDetail createUser(KakaoUserInfoResponse kakaoUser, String refreshToken, Integer refreshTokenExpiresIn) {
         KakaoUserInfoResponse.KakaoAccount account = kakaoUser.getKakaoAccount();
         KakaoUserInfoResponse.Profile profile = account != null ? account.getProfile() : null;
 
-        User user = User.builder()
+        UsersDetail usersDetail = UsersDetail.builder()
                 .kakaoId(kakaoUser.getId())
                 .nickname(profile != null && profile.getNickname() != null
                         ? profile.getNickname()
@@ -60,19 +65,19 @@ public class UserService {
                 .build();
 
         // 리프레시 토큰 설정
-        user.updateRefreshToken(refreshToken, refreshTokenExpiresIn);
+        usersDetail.updateRefreshToken(refreshToken, refreshTokenExpiresIn);
 
-        return user;
+        return usersDetail;
     }
 
     /**
      * 기존 사용자 정보 업데이트
      */
-    private void updateUserInfo(User user, KakaoUserInfoResponse kakaoUser) {
+    private void updateUserInfo(UsersDetail usersDetail, KakaoUserInfoResponse kakaoUser) {
         KakaoUserInfoResponse.KakaoAccount account = kakaoUser.getKakaoAccount();
         KakaoUserInfoResponse.Profile profile = account != null ? account.getProfile() : null;
 
-        user.updateInfo(
+        usersDetail.updateInfo(
                 profile != null ? profile.getNickname() : null,
                 account != null ? account.getEmail() : null,
                 profile != null ? profile.getProfileImageUrl() : null,
@@ -84,16 +89,16 @@ public class UserService {
         );
     }
 
-    public User findByKakaoId(Long kakaoId) {
-        return userRepository.findByKakaoId(kakaoId).orElse(null);
+    public UsersDetail findByKakaoId(Long kakaoId) {
+        return userDetailRepository.findByKakaoId(kakaoId).orElse(null);
     }
 
-    public User findById(Long id) {
-        return userRepository.findById(id).orElse(null);
+    public UsersDetail findById(Long id) {
+        return userDetailRepository.findById(id).orElse(null);
     }
 
     @Transactional
-    public User save(User user) {
-        return userRepository.save(user);
+    public UsersDetail save(UsersDetail usersDetail) {
+        return userDetailRepository.save(usersDetail);
     }
 }

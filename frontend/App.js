@@ -4,6 +4,8 @@ import { Alert } from "react-native";
 // Use namespace import so we can call KakaoLogin.login() and friends.
 import * as KakaoLogin from '@react-native-seoul/kakao-login';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CompleteSignupScreen from "./components/CompleteSignupScreen";
+import SignupScreen from "./components/SignupScreen";
 import {
   SafeAreaView,
   View,
@@ -42,7 +44,7 @@ const INITIAL_CHATS = {
 
 // API 설정
 // const API_BASE_URL = "http://10.50.1.97:8082";
-const API_BASE_URL = "http://10.0.2.2:8080  ";
+const API_BASE_URL = "http://10.0.2.2:8080";
 
 export default function App() {
   const [screen, setScreen] = useState("landing");
@@ -75,6 +77,7 @@ export default function App() {
   const [profileFormStatus, setProfileFormStatus] = useState(userProfile.status);
   const [profileFormAvatarColor, setProfileFormAvatarColor] = useState(userProfile.avatarColor);
   const [profileEditVisible, setProfileEditVisible] = useState(false);
+  const [pendingSignupData, setPendingSignupData] = useState(null);
   const [friendManagementVisible, setFriendManagementVisible] = useState(false);
   const [friendFormVisible, setFriendFormVisible] = useState(false);
 
@@ -89,7 +92,7 @@ export default function App() {
       if (savedUserData) {
         const userData = JSON.parse(savedUserData);
         setUserProfile({
-          name: userData.nickname || "사용자",
+          name: userData.nickname || userData.name || "사용자",
           status: "환영합니다!",
           avatarColor: "#F97316",
         });
@@ -103,12 +106,37 @@ export default function App() {
   }
 
   function handleLogin() {
-    if ((identifier === "0000" || identifier === "0000@example.com") && password === "0000") {
-      setScreen("app");
-      setTab("friends");
-      return;
-    }
-    Alert.alert("로그인 실패", "테스트 계정을 이용해 주세요.");
+    // basic validation
+    if (!identifier || !password) return Alert.alert('로그인 실패', '이메일과 비밀번호를 입력하세요');
+
+    (async () => {
+      try {
+        setIsLoggingIn(true);
+        const resp = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier.trim(), password }),
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          Alert.alert('로그인 실패', text || '이메일 또는 비밀번호가 올바르지 않습니다');
+          return;
+        }
+
+        const member = await resp.json();
+        // save and go to app
+        await AsyncStorage.setItem('userData', JSON.stringify(member));
+        setUserProfile({ name: member.name || '사용자', status: '환영합니다!', avatarColor: '#F97316' });
+        setScreen('app');
+        setTab('friends');
+      } catch (err) {
+        console.error('login error', err);
+        Alert.alert('로그인 실패', err.message || String(err));
+      } finally {
+        setIsLoggingIn(false);
+      }
+    })();
   }
 
   // 카카오 로그인 - SDK 방식
@@ -150,7 +178,17 @@ export default function App() {
       const userData = await response.json();
       console.log("✅ 로그인 성공:", userData);
 
-      // 3. 사용자 데이터 저장
+      // If backend indicates the user still needs to complete registration into `users` table,
+      // show the CompleteSignup screen so we can collect required fields.
+      if (userData.needsSignup) {
+        // Always route Kakao users to the general signup flow so they go through
+        // the same 'users' creation and linking step.
+        setPendingSignupData(userData);
+        setScreen("signup");
+        return;
+      }
+
+      // 3. 기본 사용자 데이터 저장
       await AsyncStorage.setItem("userData", JSON.stringify(userData));
 
       // 4. 프로필 업데이트
@@ -188,12 +226,19 @@ export default function App() {
 
   async function handleLogout() {
     try {
-      // 카카오 로그아웃
-      await KakaoLogin.logout();
-      
+
+      // 카카오 로그아웃 시도
+      try {
+        await KakaoLogin.logout();
+        console.log("✅ 카카오 로그아웃 성공");
+      } catch (kakaoError) {
+        // 토큰 없으면 무시 (일반 로그인 사용자)
+        console.log("ℹ️ 카카오 로그아웃 스킵:", kakaoError.message);
+      }
+
       // 로컬 데이터 삭제
       await AsyncStorage.removeItem("userData");
-      
+
       setScreen("landing");
       setUserProfile({
         name: "테스트 유저",
@@ -204,6 +249,25 @@ export default function App() {
       Alert.alert("로그아웃", "로그아웃되었습니다.");
     } catch (error) {
       console.error("로그아웃 실패:", error);
+    }
+  }
+
+  async function handleKakaoUnlink() {
+  try {
+      // 로컬 데이터 삭제
+      await AsyncStorage.removeItem("userData");
+      
+      // 초기 상태로 복귀
+      setScreen("landing");
+      setUserProfile({
+        name: "테스트 유저",
+        status: "친절한 상담 AI 친구를 찾아보세요.",
+        avatarColor: "#F97316",
+      });
+      
+      console.log("✅ 카카오 언링크 후 로그아웃 완료");
+    } catch (error) {
+      console.error("❌ 언링크 후 로그아웃 실패:", error);
     }
   }
 
@@ -371,7 +435,104 @@ export default function App() {
         onLogin={handleLogin}
         onBack={() => setScreen("landing")}
         onKakaoLogin={handleKakaoLogin}
+        onSignUp={() => setScreen('signup')}
         isLoggingIn={isLoggingIn}
+      />
+    );
+  }
+
+  if (screen === "completeSignup") {
+    return (
+      <CompleteSignupScreen
+        initial={{
+          nickname: pendingSignupData?.nickname,
+          email: pendingSignupData?.email || '',
+          profileImage: pendingSignupData?.profileImage,
+          userDetailId: pendingSignupData?.userDetailId,
+        }}
+        onCancel={() => {
+          // allow user to skip completion — go back to login
+          setPendingSignupData(null);
+          setScreen('login');
+        }}
+        onComplete={async (payload) => {
+          try {
+            const resp = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!resp.ok) {
+              const text = await resp.text();
+              Alert.alert('회원가입 실패', text || '서버 오류');
+              return;
+            }
+
+            const member = await resp.json();
+
+            // Save member returned by server and continue
+            await AsyncStorage.setItem('userData', JSON.stringify(member));
+            setUserProfile({ name: member.name || payload.name, status: '환영합니다!', avatarColor: '#F97316' });
+            setPendingSignupData(null);
+            setScreen('app');
+            setTab('friends');
+            Alert.alert('회원가입 완료', `${payload.name}님, 환영합니다! 🎉`);
+          } catch (err) {
+            console.error('signup error', err);
+            Alert.alert('회원가입 실패', err.message || String(err));
+          }
+        }}
+      />
+    );
+  }
+
+  if (screen === "signup") {
+    return (
+      <SignupScreen
+        initial={{
+          email: pendingSignupData?.email || '',
+          name: pendingSignupData?.nickname || '',
+          userDetailId: pendingSignupData?.userDetailId || pendingSignupData?.userId || null,
+          kakaoId: pendingSignupData?.kakaoId || null,
+          profileImageUrl: pendingSignupData?.profileImage || pendingSignupData?.profileImageUrl || null,
+        }}
+        userProfile={{ name: '', status: '' }}
+        onComplete={async (payload) => {
+          try {
+            // Normal signup (if pendingSignupData exists, the payload may include userDetailId)
+            const resp = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!resp.ok) {
+              const text = await resp.text();
+              Alert.alert('회원가입 실패', text || '서버 오류');
+              return;
+            }
+
+            const member = await resp.json();
+
+            const userData = {
+              memberId: member.id,
+              nickname: member.name || payload.name,
+              email: member.email,
+            };
+
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+            setUserProfile({ name: payload.name, status: '환영합니다!', avatarColor: '#F97316' });
+            setScreen('app');
+            setTab('friends');
+
+            Alert.alert('회원가입 완료', `${payload.name}님, 계정이 생성되었습니다! 🎉`);
+          } catch (err) {
+            console.error('signup error', err);
+            Alert.alert('회원가입 실패', err.message || String(err));
+          }
+        }}
+        onSkip={() => setScreen('login')}
       />
     );
   }
@@ -404,6 +565,7 @@ export default function App() {
             setTheme={setTheme}
             onOpenFriendManagement={() => setFriendManagementVisible(true)}
             onOpenAccount={() => Alert.alert("알림", "계정 설정 화면은 준비 중입니다.")}
+            onKakaoUnlink={handleKakaoUnlink}  // 추가!
           />
         )}
       </View>

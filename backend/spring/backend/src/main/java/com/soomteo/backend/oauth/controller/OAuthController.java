@@ -1,12 +1,11 @@
     package com.soomteo.backend.oauth.controller;
 
-    import com.soomteo.backend.oauth.dto.IdTokenPayload;
     import com.soomteo.backend.oauth.dto.MobileLoginRequest;
     import com.soomteo.backend.oauth.dto.KakaoTokenResponse;
     import com.soomteo.backend.oauth.dto.KakaoUserInfoResponse;
     import com.soomteo.backend.oauth.service.KakaoOAuthService;
-    import com.soomteo.backend.user.entity.User;
-    import com.soomteo.backend.user.service.UserService;
+    import com.soomteo.backend.user.entity.UsersDetail;
+    import com.soomteo.backend.user.service.UserDetailService;
     import jakarta.servlet.http.Cookie;
     import jakarta.servlet.http.HttpServletRequest;
     import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +25,7 @@
     public class OAuthController {
 
         private final KakaoOAuthService kakaoOAuthService;
-        private final UserService userService;
+        private final UserDetailService userDetailService;
 
         @Value("${kakao.javascript-key}")
         private String kakaoJavascriptKey;
@@ -62,19 +61,19 @@
             }
 
             // 3. DB에 회원가입 또는 로그인 처리
-            User user = userService.loginOrRegister(
-                    kakaoUser,
-                    tokenResponse.getRefreshToken(),
-                    tokenResponse.getRefreshTokenExpiresIn()
-            );
+            UsersDetail usersDetail = userDetailService.findByKakaoId(kakaoUser.getId());
 
-            System.out.println("\n=== DB 저장 완료 ===");
-            System.out.println("사용자 ID = " + user.getId());
-            System.out.println("카카오 ID = " + user.getKakaoId());
-            System.out.println("닉네임 = " + user.getNickname());
-            System.out.println("이메일 = " + user.getEmail());
-            System.out.println("가입 시각 = " + user.getCreatedAt());
-            System.out.println("마지막 로그인 = " + user.getLastLoginAt());
+            System.out.println("\n=== DB 조회 결과 ===");
+            if (usersDetail != null) {
+                System.out.println("사용자 ID = " + usersDetail.getId());
+                System.out.println("카카오 ID = " + usersDetail.getKakaoId());
+                System.out.println("닉네임 = " + usersDetail.getNickname());
+                System.out.println("이메일 = " + usersDetail.getEmail());
+                System.out.println("가입 시각 = " + usersDetail.getCreatedAt());
+                System.out.println("마지막 로그인 = " + usersDetail.getLastLoginAt());
+            } else {
+                System.out.println("사용자 정보가 DB에 없습니다. 회원가입 단계로 유도합니다.");
+            }
 
             // 4. 액세스 토큰을 쿠키에 저장
             Cookie accessTokenCookie = new Cookie("kakao_access_token", tokenResponse.getAccessToken());
@@ -83,21 +82,29 @@
             accessTokenCookie.setMaxAge(tokenResponse.getExpiresIn());
             response.addCookie(accessTokenCookie);
 
-            // 5. 사용자 ID를 쿠키에 저장 (세션 관리용)
-            Cookie userIdCookie = new Cookie("user_id", String.valueOf(user.getId()));
-            userIdCookie.setHttpOnly(false);
-            userIdCookie.setPath("/");
-            userIdCookie.setMaxAge(tokenResponse.getExpiresIn());
-            response.addCookie(userIdCookie);
+            // 5. 사용자 ID를 쿠키에 저장 (세션 관리용) — DB에 존재할 때만
+            if (usersDetail != null) {
+                Cookie userIdCookie = new Cookie("user_id", String.valueOf(usersDetail.getId()));
+                userIdCookie.setHttpOnly(false);
+                userIdCookie.setPath("/");
+                userIdCookie.setMaxAge(tokenResponse.getExpiresIn());
+                response.addCookie(userIdCookie);
+            }
 
             // 6. Model에 사용자 정보 담기
-            model.addAttribute("userId", user.getId());
-            model.addAttribute("kakaoId", user.getKakaoId());
-            model.addAttribute("nickname", user.getNickname());
-            model.addAttribute("email", getValueOrDefault(user.getEmail(), "미제공"));
-            model.addAttribute("profileImage", user.getProfileImageUrl());
-            model.addAttribute("ageRange", getValueOrDefault(user.getAgeRange(), "미제공"));
-            model.addAttribute("gender", getValueOrDefault(user.getGender(), "미제공"));
+            if (usersDetail != null) {
+                model.addAttribute("userId", usersDetail.getId());
+                model.addAttribute("kakaoId", usersDetail.getKakaoId());
+                model.addAttribute("nickname", usersDetail.getNickname());
+                model.addAttribute("email", getValueOrDefault(usersDetail.getEmail(), "미제공"));
+                model.addAttribute("profileImage", usersDetail.getProfileImageUrl());
+                model.addAttribute("ageRange", getValueOrDefault(usersDetail.getAgeRange(), "미제공"));
+                model.addAttribute("gender", getValueOrDefault(usersDetail.getGender(), "미제공"));
+            } else {
+                model.addAttribute("kakaoId", kakaoUser.getId());
+                model.addAttribute("nickname", (kakaoUser.getKakaoAccount() != null && kakaoUser.getKakaoAccount().getProfile() != null) ? kakaoUser.getKakaoAccount().getProfile().getNickname() : "");
+                model.addAttribute("email", (kakaoUser.getKakaoAccount() != null) ? kakaoUser.getKakaoAccount().getEmail() : "");
+            }
 
             System.out.println("\n✅ 로그인 완료! 메인 페이지로 이동");
 
@@ -122,21 +129,21 @@
             }
 
             // DB에서 사용자 정보 조회
-            User user = userService.findById(Long.parseLong(userId));
+            UsersDetail usersDetail = userDetailService.findById(Long.parseLong(userId));
 
-            if (user == null) {
+            if (usersDetail == null) {
                 System.out.println("⚠️ 사용자를 찾을 수 없습니다. 로그인 페이지로 리다이렉트");
                 return "redirect:/api/v1/auth/kakao/login";
             }
 
             // Model에 사용자 정보 담기
-            model.addAttribute("userId", user.getId());
-            model.addAttribute("kakaoId", user.getKakaoId());
-            model.addAttribute("nickname", user.getNickname());
-            model.addAttribute("email", getValueOrDefault(user.getEmail(), "미제공"));
-            model.addAttribute("profileImage", user.getProfileImageUrl());
-            model.addAttribute("ageRange", getValueOrDefault(user.getAgeRange(), "미제공"));
-            model.addAttribute("gender", getValueOrDefault(user.getGender(), "미제공"));
+            model.addAttribute("userId", usersDetail.getId());
+            model.addAttribute("kakaoId", usersDetail.getKakaoId());
+            model.addAttribute("nickname", usersDetail.getNickname());
+            model.addAttribute("email", getValueOrDefault(usersDetail.getEmail(), "미제공"));
+            model.addAttribute("profileImage", usersDetail.getProfileImageUrl());
+            model.addAttribute("ageRange", getValueOrDefault(usersDetail.getAgeRange(), "미제공"));
+            model.addAttribute("gender", getValueOrDefault(usersDetail.getGender(), "미제공"));
 
             System.out.println("✅ 사용자 정보 확인 완료. 메인 페이지 표시");
             return "main";
@@ -154,18 +161,18 @@
                     return "사용자 ID가 없습니다.";
                 }
 
-                User user = userService.findById(Long.parseLong(userId));
-                if (user == null || user.getRefreshToken() == null) {
+                UsersDetail usersDetail = userDetailService.findById(Long.parseLong(userId));
+                if (usersDetail == null || usersDetail.getRefreshToken() == null) {
                     return "리프레시 토큰이 없습니다. 다시 로그인하세요.";
                 }
 
                 // 토큰 갱신 요청
-                KakaoTokenResponse newTokens = kakaoOAuthService.refreshAccessToken(user.getRefreshToken());
+                KakaoTokenResponse newTokens = kakaoOAuthService.refreshAccessToken(usersDetail.getRefreshToken());
 
                 // DB에 새로운 리프레시 토큰 저장 (갱신된 경우)
                 if (newTokens.getRefreshToken() != null) {
-                    user.updateRefreshToken(newTokens.getRefreshToken(), newTokens.getRefreshTokenExpiresIn());
-                    userService.save(user);
+                    usersDetail.updateRefreshToken(newTokens.getRefreshToken(), newTokens.getRefreshTokenExpiresIn());
+                    userDetailService.save(usersDetail);
                 }
 
                 // 새로운 액세스 토큰을 쿠키에 저장
@@ -231,8 +238,8 @@
                 // 1. 사용자 정보 조회
                 KakaoUserInfoResponse kakaoUser = kakaoOAuthService.getUserInfo(accessToken);
 
-                // 2. DB에 회원가입 또는 로그인 처리 (모바일에서는 refresh token이 선택적일 수 있음)
-                User user = userService.loginOrRegister(kakaoUser, refreshToken, refreshTokenExpiresIn);
+                // 2. 확인: DB에 이미 usersDetail(카카오 프로필)이 있는지 확인
+                UsersDetail usersDetail = userDetailService.findByKakaoId(kakaoUser.getId());
 
                 // 3. 응답용 JSON 구성 및 쿠키 설정(옵션)
                 Cookie accessTokenCookie = new Cookie("kakao_access_token", accessToken);
@@ -241,17 +248,39 @@
                 // do not set maxAge here because token lifetime may not be known on server side
                 response.addCookie(accessTokenCookie);
 
-                Cookie userIdCookie = new Cookie("user_id", String.valueOf(user.getId()));
-                userIdCookie.setHttpOnly(false);
-                userIdCookie.setPath("/");
-                response.addCookie(userIdCookie);
+                if (usersDetail != null) {
+                    Cookie userIdCookie = new Cookie("user_id", String.valueOf(usersDetail.getId()));
+                    userIdCookie.setHttpOnly(false);
+                    userIdCookie.setPath("/");
+                    response.addCookie(userIdCookie);
+                }
 
                 java.util.Map<String, Object> result = new java.util.HashMap<>();
-                result.put("userId", user.getId());
-                result.put("kakaoId", user.getKakaoId());
-                result.put("nickname", user.getNickname());
-                result.put("email", getValueOrDefault(user.getEmail(), "미제공"));
-                result.put("profileImage", user.getProfileImageUrl());
+                if (usersDetail != null && usersDetail.getUser() != null) {
+                    // A persisted usersDetail that already linked to user -> login result
+                    result.put("needsSignup", false);
+                    result.put("userId", usersDetail.getId());
+                    result.put("memberId", usersDetail.getUser().getId());
+                    result.put("kakaoId", usersDetail.getKakaoId());
+                    result.put("nickname", usersDetail.getNickname());
+                    result.put("email", getValueOrDefault(usersDetail.getEmail(), "미제공"));
+                    result.put("profileImage", usersDetail.getProfileImageUrl());
+                } else if (usersDetail != null) {
+                    // persisted usersDetail but not linked yet -> ask client to complete signup
+                    result.put("needsSignup", true);
+                    result.put("userDetailId", usersDetail.getId());
+                    result.put("kakaoId", usersDetail.getKakaoId());
+                    result.put("nickname", usersDetail.getNickname());
+                    result.put("email", getValueOrDefault(usersDetail.getEmail(), ""));
+                    result.put("profileImage", usersDetail.getProfileImageUrl());
+                } else {
+                    // no usersDetail in DB -> return kakao payload and require signup
+                    result.put("needsSignup", true);
+                    result.put("kakaoId", kakaoUser.getId());
+                    result.put("nickname", kakaoUser.getKakaoAccount() != null && kakaoUser.getKakaoAccount().getProfile() != null ? kakaoUser.getKakaoAccount().getProfile().getNickname() : null);
+                    result.put("email", kakaoUser.getKakaoAccount() != null ? kakaoUser.getKakaoAccount().getEmail() : null);
+                    result.put("profileImage", kakaoUser.getKakaoAccount() != null && kakaoUser.getKakaoAccount().getProfile() != null ? kakaoUser.getKakaoAccount().getProfile().getProfileImageUrl() : null);
+                }
 
                 return result;
 
@@ -286,15 +315,21 @@
                 KakaoUserInfoResponse kakaoUser = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
 
                 // DB에 회원가입 또는 로그인 처리
-                User user = userService.loginOrRegister(kakaoUser, tokenResponse.getRefreshToken(), tokenResponse.getRefreshTokenExpiresIn());
+                UsersDetail usersDetail = userDetailService.findByKakaoId(kakaoUser.getId());
 
                 // 응답 구성
                 java.util.Map<String, Object> result = new java.util.HashMap<>();
-                result.put("userId", user.getId());
-                result.put("kakaoId", user.getKakaoId());
-                result.put("nickname", user.getNickname());
-                result.put("email", getValueOrDefault(user.getEmail(), "미제공"));
-                result.put("profileImage", user.getProfileImageUrl());
+                result.put("userId", usersDetail.getId());
+                // Force the client to proceed through the general signup flow.
+                result.put("needsSignup", true);
+                result.put("userDetailId", usersDetail.getId());
+                result.put("kakaoId", usersDetail.getKakaoId());
+                result.put("nickname", usersDetail.getNickname());
+                result.put("email", getValueOrDefault(usersDetail.getEmail(), ""));
+                result.put("kakaoId", usersDetail.getKakaoId());
+                result.put("nickname", usersDetail.getNickname());
+                result.put("email", getValueOrDefault(usersDetail.getEmail(), "미제공"));
+                result.put("profileImage", usersDetail.getProfileImageUrl());
 
                 // (선택) 쿠키 저장
                 Cookie accessTokenCookie = new Cookie("kakao_access_token", tokenResponse.getAccessToken());
@@ -303,7 +338,7 @@
                 accessTokenCookie.setMaxAge(tokenResponse.getExpiresIn());
                 response.addCookie(accessTokenCookie);
 
-                Cookie userIdCookie = new Cookie("user_id", String.valueOf(user.getId()));
+                Cookie userIdCookie = new Cookie("user_id", String.valueOf(usersDetail.getId()));
                 userIdCookie.setHttpOnly(false);
                 userIdCookie.setPath("/");
                 userIdCookie.setMaxAge(tokenResponse.getExpiresIn());

@@ -1,8 +1,8 @@
 package com.soomteo.backend.oauth.interceptor;
 
 import com.soomteo.backend.oauth.service.KakaoOAuthService;
-import com.soomteo.backend.user.entity.User;
-import com.soomteo.backend.user.service.UserService;
+import com.soomteo.backend.user.entity.UsersDetail;
+import com.soomteo.backend.user.service.UserDetailService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,7 +15,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class TokenRefreshInterceptor implements HandlerInterceptor {
 
     private final KakaoOAuthService kakaoOAuthService;
-    private final UserService userService;
+    private final UserDetailService userDetailService;
 
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -37,16 +37,16 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
 
                 String userId = getCookieValue(request, "user_id");
                 if (userId != null) {
-                    User user = userService.findById(Long.parseLong(userId));
+                    UsersDetail usersDetail = userDetailService.findById(Long.parseLong(userId));
 
-                    if (user != null && user.getRefreshToken() != null) {
+                    if (usersDetail != null && usersDetail.getRefreshToken() != null) {
                         try {
-                            var newTokens = kakaoOAuthService.refreshAccessToken(user.getRefreshToken());
+                            var newTokens = kakaoOAuthService.refreshAccessToken(usersDetail.getRefreshToken());
 
                             // ✅ 새 리프레시 토큰이 있으면 DB 업데이트
                             if (newTokens.getRefreshToken() != null) {
-                                user.updateRefreshToken(newTokens.getRefreshToken(), newTokens.getRefreshTokenExpiresIn());
-                                userService.save(user);
+                                usersDetail.updateRefreshToken(newTokens.getRefreshToken(), newTokens.getRefreshTokenExpiresIn());
+                                userDetailService.save(usersDetail);
                             }
 
                             // 새 액세스 토큰 쿠키에 저장

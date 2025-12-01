@@ -19,6 +19,7 @@ export default function LoginScreen({
   onLogin,
   onBack,
   onKakaoLogin,
+  onSignUp,
   isLoggingIn = false,
 }) {
   return (
@@ -40,7 +41,7 @@ export default function LoginScreen({
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>이메일 또는 전화번호</Text>
+            <Text style={styles.label}>이메일</Text>
             <TextInput
               style={styles.input}
               placeholder="example@email.com"
@@ -71,7 +72,22 @@ export default function LoginScreen({
             onPress={onLogin}
             disabled={isLoggingIn}
           >
-            <Text style={styles.loginButtonText}>로그인</Text>
+            {isLoggingIn ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>로그인 중...</Text>
+              </View>
+            ) : (
+              <Text style={styles.loginButtonText}>로그인</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.signupButton, isLoggingIn && styles.disabledButton]}
+            onPress={onSignUp}
+            disabled={isLoggingIn}
+          >
+            <Text style={styles.signupButtonText}>회원가입으로 시작하기</Text>
           </TouchableOpacity>
 
           <View style={styles.divider}>
@@ -93,12 +109,12 @@ export default function LoginScreen({
             ) : (
               <View style={styles.kakaoButtonContent}>
                 <Text style={styles.kakaoIcon}>💬</Text>
-                <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
+                <Text style={styles.kakaoButtonText}>카카오로 로그인</Text>
               </View>
             )}
           </TouchableOpacity>
 
-          <View style={styles.testInfo}>
+          {/* <View style={styles.testInfo}>
             <Text style={styles.testInfoTitle}>💡 테스트 계정</Text>
             <View style={styles.testInfoRow}>
               <Text style={styles.testInfoLabel}>아이디:</Text>
@@ -108,7 +124,12 @@ export default function LoginScreen({
               <Text style={styles.testInfoLabel}>비밀번호:</Text>
               <Text style={styles.testInfoValue}>0000</Text>
             </View>
-          </View>
+          </View> */}
+
+          {/* <TouchableOpacity style={styles.signUpLink} onPress={onSignUp}>
+            <Text style={styles.signUpText}>계정이 없나요? 회원가입</Text>
+          </TouchableOpacity> */}
+
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -248,6 +269,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#d4e3ff",
+  },
+  signUpLink: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  signUpText: {
+    color: '#4c5ff2',
+    fontWeight: '700',
+  },
+  signupButton: {
+    backgroundColor: '#10b981',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signupButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   testInfoTitle: {
     fontSize: 14,
