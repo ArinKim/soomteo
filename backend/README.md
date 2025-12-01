@@ -90,5 +90,3 @@ spring.datasource.password=패스워드
 * MySQL 초기화 후 Spring Boot가 바로 연결 안 되면 컨테이너 재시작 필요
 
 ---
-
-
