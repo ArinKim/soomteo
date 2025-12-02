@@ -32,6 +32,7 @@ import ChatListView from "./components/ChatListView";
 import FriendManagementModal from "./components/FriendManagementModal";
 import FriendAddModal from "./components/FriendAddModal";
 import ProfileEditModal from "./components/ProfileEditModal";
+import CallingScreen from "./components/CallingScreen";
 import { styles } from "./components/styles";
 import { API_BASE_URL, PERSONALITY_OPTIONS, AVATAR_COLORS } from "./components/constants";
 
@@ -51,6 +52,7 @@ export default function App() {
   const [friends, setFriends] = useState([]);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [activeChatFriend, setActiveChatFriend] = useState(null);
+  const [callingFriend, setCallingFriend] = useState(null);
 
   // 친구 추가/수정 관련
   const [newFriendName, setNewFriendName] = useState("");
@@ -362,8 +364,18 @@ async function handleKakaoLogin() {
     setSelectedFriend(null);
   }
 
+  // =====================================================================
+  // 전화 걸기
+  // =====================================================================
   function handleCall(friend) {
-    Alert.alert("전화", `${friend.name}에게 전화 거는 중... (시뮬레이션)`);
+    console.log("📞 handleCall called with friend:", friend);
+    setCallingFriend(friend);
+    setSelectedFriend(null); // ProfileModal 닫기
+  }
+
+  function handleEndCall() {
+    console.log("📞 handleEndCall called");
+    setCallingFriend(null);
   }
 
   // =====================================================================
@@ -600,6 +612,17 @@ async function handleKakaoLogin() {
           }
         }}
         onSkip={() => setScreen('login')}
+      />
+    );
+  }
+
+  // CallingScreen이 활성화되면 전체 화면으로 표시
+  if (callingFriend) {
+    return (
+      <CallingScreen
+        friend={callingFriend}
+        userId={userId}
+        onEndCall={handleEndCall}
       />
     );
   }

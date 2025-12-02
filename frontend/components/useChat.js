@@ -8,13 +8,13 @@ import {
     STOMP_PUB_PREFIX,
 } from "./constants";
 
-export function useChat(roomId, userId) {
+export function useChat(roomId, userId, channelType = "CHAT") {
     const clientRef = useRef(null);
     const subscriptionRef = useRef(null);
     const [messages, setMessages] = useState([]);
     const [connected, setConnected] = useState(false);
 
-    console.log("🔍 useChat 호출:", { roomId, userId });
+    console.log("🔍 useChat 호출:", { roomId, userId, channelType });
 
     // 히스토리 불러오기
     useEffect(() => {
@@ -177,6 +177,7 @@ export function useChat(roomId, userId) {
             senderId: userId,
             content: trimmed,
             type: "USER",
+            channelType: channelType,
             timestamp: Date.now(),
         };
 
